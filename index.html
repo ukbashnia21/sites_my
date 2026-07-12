@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Дыхание</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; }
+  body {
+    font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;
+    background:radial-gradient(ellipse at 50% 30%, #17202b 0%, #0c0f14 70%);
+    color:#e7e3d8; overflow:hidden;
+    display:flex; flex-direction:column; align-items:center;
+    min-height:100vh; user-select:none;
+  }
+
+  .top { width:100%; max-width:520px; padding:20px 18px 6px; text-align:center; }
+  .title { font-size:12px; letter-spacing:3px; text-transform:uppercase; color:#6f7d70; }
+
+  /* mode + duration selectors */
+  .row { display:flex; gap:7px; justify-content:center; margin-top:12px; flex-wrap:wrap; }
+  .chip {
+    font-size:12.5px; padding:7px 13px; border-radius:20px; cursor:pointer;
+    background:rgba(255,255,255,0.05); color:#b7c2b8; border:1px solid rgba(255,255,255,0.08);
+    transition:all .2s;
+  }
+  .chip.on { background:#4a5d4f; color:#f2efe6; border-color:#5f7563; }
+  .chip small { display:block; font-size:9px; color:#7f8a80; letter-spacing:.3px; margin-top:1px; }
+  .chip.on small { color:#cdd8ce; }
+  .dur .chip { padding:6px 14px; }
+
+  .note { font-size:11.5px; color:#7c8a7e; margin-top:9px; height:14px; }
+
+  /* breathing stage */
+  .stage { flex:1; width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; }
+  .halo {
+    position:absolute; width:300px; height:300px; border-radius:50%;
+    background:radial-gradient(circle, rgba(122,161,140,0.18) 0%, rgba(122,161,140,0) 68%);
+    transform:scale(.5); opacity:.6;
+  }
+  .circle {
+    width:210px; height:210px; border-radius:50%; position:relative;
+    background:radial-gradient(circle at 38% 32%, #8fb59c 0%, #4a5d4f 62%, #38473c 100%);
+    box-shadow:0 0 60px rgba(122,161,140,0.28), inset 0 0 40px rgba(0,0,0,0.25);
+    transform:scale(.5);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .phase { font-size:23px; font-weight:600; color:#f4f1e8; letter-spacing:.5px; text-shadow:0 1px 8px rgba(0,0,0,.35); }
+  .count { position:absolute; bottom:-2px; font-size:13px; color:rgba(244,241,232,0.55); }
+
+  /* bottom controls */
+  .bottom { width:100%; max-width:520px; padding:0 18px 30px; text-align:center; }
+  .timer { font-size:15px; color:#8a968c; letter-spacing:1px; margin-bottom:14px; font-variant-numeric:tabular-nums; }
+  .btn {
+    width:100%; max-width:320px; margin:0 auto; padding:16px; border-radius:16px; border:none;
+    font-size:16px; font-weight:600; cursor:pointer; letter-spacing:.5px;
+    background:#c1583e; color:#fff; transition:transform .1s, background .2s;
+  }
+  .btn:active { transform:scale(.98); }
+  .btn.ghost { background:rgba(255,255,255,0.07); color:#c9d2ca; }
+  .sound { margin-top:14px; font-size:12px; color:#66716a; cursor:pointer; }
+  .sound b { color:#9fb0a1; }
+
+  /* done screen */
+  .done { display:none; flex-direction:column; align-items:center; justify-content:center; flex:1; text-align:center; padding:0 30px; }
+  .done .big { font-size:44px; font-weight:700; color:#8fb59c; }
+  .done .lbl { font-size:13px; color:#7c8a7e; letter-spacing:2px; text-transform:uppercase; margin-top:4px; }
+  .done .msg { font-size:14px; color:#c3ccc4; line-height:1.5; margin:18px 0 6px; max-width:340px; }
+  .done .whoop { font-size:12.5px; color:#7c8a7e; margin-top:10px; }
+
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+
+  <div class="top">
+    <div class="title">Дыхание</div>
+    <div class="row modes" id="modes"></div>
+    <div class="row dur" id="durs"></div>
+    <div class="note" id="note"></div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="halo" id="halo"></div>
+    <div class="circle" id="circle">
+      <div class="phase" id="phase">Готов?</div>
+    </div>
+    <div class="count" id="cyc"></div>
+  </div>
+
+  <div class="done" id="done">
+    <div class="big" id="doneCycles">0</div>
+    <div class="lbl">циклов</div>
+    <div class="msg" id="doneMsg"></div>
+    <div class="whoop">Отметь в WHOOP → Activity → <b>Meditation / Breathwork</b></div>
+    <button class="btn ghost" style="margin-top:22px" onclick="reset()">Ещё раз</button>
+  </div>
+
+  <div class="bottom" id="bottom">
+    <div class="timer" id="timer">10:00</div>
+    <button class="btn" id="startBtn" onclick="toggle()">Начать</button>
+    <div class="sound" id="soundToggle" onclick="toggleSound()">Звук: <b id="soundState">вкл</b> · закрой глаза и веди по звуку</div>
+  </div>
+
+<script>
+  const PATTERNS = {
+    resonance:{ name:'Резонанс 5.5', hint:'≈5.5 вдоха/мин · пик HRV (утро/день)',
+      phases:[['Вдох',5.5,'in'],['Выдох',5.5,'out']] },
+    vagus:{ name:'Вагус 4/6', hint:'выдох длиннее · вагус, пульс вниз (вечер/сон)',
+      phases:[['Вдох',4,'in'],['Выдох',6,'out']] },
+    p478:{ name:'4-7-8', hint:'глубже, с задержкой',
+      phases:[['Вдох',4,'in'],['Задержка',7,'hold'],['Выдох',8,'out']] }
+  };
+  const DURS = [3,5,10];
+
+  let mode='resonance', durMin=10;
+  let running=false, phaseIdx=0, cycles=0, elapsed=0, phaseTimer=null, tickTimer=null, lastScale=0.5;
+  let soundOn=true, actx=null;
+
+  const $ = id => document.getElementById(id);
+  const circle=$('circle'), halo=$('halo'), phaseEl=$('phase');
+
+  function buildChips(){
+    $('modes').innerHTML = Object.entries(PATTERNS).map(([k,p])=>
+      `<div class="chip ${k===mode?'on':''}" onclick="setMode('${k}')">${p.name}</div>`).join('');
+    $('durs').innerHTML = DURS.map(d=>
+      `<div class="chip ${d===durMin?'on':''}" onclick="setDur(${d})">${d} мин</div>`).join('');
+    $('note').textContent = PATTERNS[mode].hint;
+    $('timer').textContent = fmt(durMin*60);
+  }
+  function setMode(k){ if(running)return; mode=k; buildChips(); }
+  function setDur(d){ if(running)return; durMin=d; buildChips(); }
+  function fmt(s){ s=Math.max(0,Math.round(s)); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+
+  function ensureAudio(){ if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } }
+  function tone(type){
+    if(!soundOn||!actx) return;
+    const now=actx.currentTime;
+    const o=actx.createOscillator(), g=actx.createGain();
+    const freq = type==='in'?432 : type==='out'?288 : 360;
+    o.frequency.value=freq; o.type='sine';
+    o.connect(g); g.connect(actx.destination);
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(0.12, now+0.25);
+    g.gain.linearRampToValueAtTime(0.0001, now+1.1);
+    o.start(now); o.stop(now+1.2);
+  }
+
+  function toggle(){ running?stop(true):start(); }
+
+  function start(){
+    ensureAudio();
+    if(actx&&actx.state==='suspended') actx.resume();
+    running=true; phaseIdx=0; cycles=0; elapsed=0; lastScale=0.5;
+    $('startBtn').textContent='Стоп'; $('startBtn').classList.add('ghost');
+    $('soundToggle').style.visibility='hidden';
+    document.querySelectorAll('.chip').forEach(c=>c.style.opacity=.4);
+    tickTimer=setInterval(()=>{ elapsed++; const rem=durMin*60-elapsed;
+      $('timer').textContent=fmt(rem); if(rem<=0){/* finish handled at phase end */} }, 1000);
+    runPhase();
+  }
+
+  function runPhase(){
+    if(elapsed>=durMin*60){ finish(); return; }
+    const [label,sec,type]=PATTERNS[mode].phases[phaseIdx];
+    phaseEl.textContent=label;
+    const target = type==='in'?1 : type==='out'?0.5 : lastScale;
+    lastScale=target;
+    circle.style.transition=`transform ${sec}s ease-in-out`;
+    halo.style.transition=`transform ${sec}s ease-in-out, opacity ${sec}s ease-in-out`;
+    // force reflow then set
+    requestAnimationFrame(()=>{ circle.style.transform=`scale(${target})`;
+      halo.style.transform=`scale(${target*1.15})`; halo.style.opacity = type==='in'?0.9:0.5; });
+    tone(type);
+    // small countdown inside phase
+    let left=Math.round(sec);
+    $('cyc').textContent = `цикл ${cycles+1}`;
+    phaseTimer=setTimeout(()=>{
+      phaseIdx=(phaseIdx+1)%PATTERNS[mode].phases.length;
+      if(phaseIdx===0) cycles++;
+      runPhase();
+    }, sec*1000);
+  }
+
+  function stop(reset_){
+    running=false; clearTimeout(phaseTimer); clearInterval(tickTimer);
+    if(reset_){ finish(); }
+  }
+
+  function finish(){
+    running=false; clearTimeout(phaseTimer); clearInterval(tickTimer);
+    $('stage').classList.add('hidden'); $('bottom').classList.add('hidden');
+    const done=$('done'); done.style.display='flex';
+    $('doneCycles').textContent=cycles;
+    const mins=Math.max(1,Math.round(elapsed/60));
+    $('doneMsg').innerHTML = cycles<2
+      ? 'Даже пара минут снижает пульс — уже польза.'
+      : `${mins} мин в резонансе. Выдох длиннее/ровное дыхание запустили вагус — пульс ниже, тонус мягче.<br><span style="color:#6f7d70">Теперь просто подыши носом свободно.</span>`;
+  }
+
+  function reset(){
+    $('done').style.display='none';
+    $('stage').classList.remove('hidden'); $('bottom').classList.remove('hidden');
+    $('startBtn').textContent='Начать'; $('startBtn').classList.remove('ghost');
+    $('soundToggle').style.visibility='visible';
+    document.querySelectorAll('.chip').forEach(c=>c.style.opacity=1);
+    circle.style.transition='transform .6s'; circle.style.transform='scale(.5)';
+    halo.style.transform='scale(.5)'; halo.style.opacity=.6;
+    phaseEl.textContent='Готов?'; $('cyc').textContent=''; lastScale=0.5;
+    buildChips();
+  }
+
+  function toggleSound(){ soundOn=!soundOn; $('soundState').textContent=soundOn?'вкл':'выкл'; ensureAudio(); if(actx&&actx.state==='suspended')actx.resume(); }
+
+  buildChips();
+</script>
+</body>
+</html>
