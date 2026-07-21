@@ -1,0 +1,2507 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ИИ-ВИЗАЦИЯ: OPENCLAW — n8n + Автоматизации + Cron Jobs</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Onest:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #0a0a0f; --bg-card: #12121a; --bg-card-hover: #181825;
+    --border: #1e1e2e; --border-accent: #2a2a3e;
+    --text-primary: #e8e6f0; --text-secondary: #8b879e; --text-muted: #5a5670;
+    --accent: #7c5bf5; --accent-glow: #9d7cff; --accent-soft: rgba(124,91,245,0.12);
+    --green: #34d399; --green-glow: #6ee7b7; --green-soft: rgba(52,211,153,0.1);
+    --amber: #fbbf24; --amber-soft: rgba(251,191,36,0.1);
+    --red-soft: rgba(248,113,113,0.1); --red: #f87171;
+    --radius: 14px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Onest',sans-serif; background:var(--bg-deep); color:var(--text-primary); line-height:1.65; min-height:100vh; -webkit-font-smoothing:antialiased; }
+  body::before { content:''; position:fixed; inset:0; background-image:radial-gradient(circle at 20% 20%,rgba(124,91,245,0.04) 0%,transparent 50%),radial-gradient(circle at 80% 80%,rgba(52,211,153,0.03) 0%,transparent 50%); pointer-events:none; z-index:0; }
+  .wrapper { position:relative; z-index:1; max-width:680px; margin:0 auto; padding:40px 20px 80px; }
+
+  /* ─── HEADER ─── */
+  .header { text-align:center; margin-bottom:48px; }
+  .header__badge { display:inline-block; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--accent-glow); background:var(--accent-soft); border:1px solid rgba(124,91,245,0.2); padding:6px 16px; border-radius:100px; margin-bottom:24px; animation:fadeDown .6s ease both; }
+  .header__title { font-size:clamp(22px,5vw,34px); font-weight:800; line-height:1.2; letter-spacing:-0.5px; margin-bottom:20px; animation:fadeDown .6s ease .1s both; }
+  .header__title span { background:linear-gradient(135deg,var(--accent-glow),var(--green)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .header__topics { list-style:none; display:flex; flex-direction:column; gap:7px; max-width:460px; margin:0 auto; animation:fadeDown .6s ease .2s both; }
+  .header__topics li { font-size:13.5px; color:var(--text-secondary); display:flex; align-items:flex-start; gap:8px; text-align:left; }
+  .header__topics li::before { content:'→'; color:var(--accent); flex-shrink:0; font-family:'JetBrains Mono',monospace; font-size:11px; margin-top:3px; }
+
+  /* ─── PROGRESS ─── */
+  .progress-wrap { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:20px 24px; margin-bottom:36px; position:sticky; top:12px; z-index:10; backdrop-filter:blur(16px); background:rgba(18,18,26,0.92); animation:fadeDown .6s ease .3s both; }
+  .progress-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .progress-label { font-size:13px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:1px; font-family:'JetBrains Mono',monospace; }
+  .progress-count { font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:var(--accent-glow); }
+  .progress-bar { width:100%; height:8px; background:var(--border); border-radius:100px; overflow:hidden; }
+  .progress-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--green)); border-radius:100px; transition:width .5s cubic-bezier(.34,1.56,.64,1); width:0%; }
+
+  /* ─── SECTION ─── */
+  .section { margin-bottom:28px; }
+  .section__header { display:flex; align-items:center; gap:12px; margin-bottom:14px; padding-left:2px; }
+  .section__num { font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:var(--accent); background:var(--accent-soft); width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:8px; flex-shrink:0; }
+  .section__title { font-size:16px; font-weight:700; letter-spacing:-0.2px; line-height:1.35; }
+  .section__card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; transition:border-color .3s; }
+  .section__card:hover { border-color:var(--border-accent); }
+
+  /* ─── CHECKLIST ITEM ─── */
+  .item { display:flex; align-items:flex-start; gap:14px; padding:16px 20px; border-bottom:1px solid var(--border); transition:background .2s; }
+  .item:last-child { border-bottom:none; }
+  .item:hover { background:var(--bg-card-hover); }
+  .item.checked .item__text { color:var(--text-muted); text-decoration:line-through; }
+  .item__check { position:relative; width:22px; height:22px; flex-shrink:0; margin-top:1px; pointer-events:auto; cursor:pointer; }
+  .item__check input { position:absolute; opacity:0; width:100%; height:100%; cursor:pointer; z-index:2; }
+  .item__check .cm { width:22px; height:22px; border:2px solid var(--border-accent); border-radius:6px; display:flex; align-items:center; justify-content:center; transition:all .25s cubic-bezier(.34,1.56,.64,1); cursor:pointer; }
+  .item__check .cm svg { width:12px; height:12px; opacity:0; transform:scale(0); transition:all .25s cubic-bezier(.34,1.56,.64,1); }
+  .item__check input:checked + .cm { background:var(--green); border-color:var(--green); }
+  .item__check input:checked + .cm svg { opacity:1; transform:scale(1); }
+  .item__body { flex:1; min-width:0; pointer-events:none; user-select:text; }
+  .item__body a, .item__body .lnk, .item__body .cmd-copy, .item__body .btn-copy { pointer-events:auto !important; cursor:pointer !important; }
+  .item__text { font-size:14.5px; font-weight:500; color:var(--text-primary); transition:all .3s; }
+  .item__hint { font-size:13px; color:var(--text-secondary); margin-top:5px; line-height:1.65; }
+  .item__hint strong { color:var(--text-primary); }
+
+  /* ─── LNK ─── */
+  .lnk { display:inline-flex; align-items:center; gap:5px; font-size:13px; font-family:'JetBrains Mono',monospace; color:var(--accent-glow); text-decoration:none; transition:color .2s; word-break:break-all; }
+  .lnk:hover { color:#bba4ff; text-decoration:underline; }
+  .lnk svg { width:13px; height:13px; flex-shrink:0; }
+
+  /* ─── RES-BLOCK ─── */
+  .res-block { padding:14px 20px; border-bottom:1px solid var(--border); transition:background .2s; }
+  .res-block:last-child { border-bottom:none; }
+  .res-block:hover { background:var(--bg-card-hover); }
+  .res-block__title { font-size:14px; font-weight:600; color:var(--text-primary); margin-bottom:3px; }
+  .res-block__sub { font-size:13px; color:var(--text-secondary); margin-bottom:7px; line-height:1.5; }
+
+  /* ─── NOTE ─── */
+  .note { display:flex; align-items:flex-start; gap:10px; padding:14px 20px; font-size:13px; color:var(--text-secondary); line-height:1.65; border-bottom:1px solid var(--border); }
+  .note:last-child { border-bottom:none; }
+  .note--warn { background:var(--amber-soft); color:var(--amber); }
+  .note--info { background:var(--accent-soft); }
+  .note--alert { background:var(--red-soft); color:var(--red); }
+  .note--green { background:var(--green-soft); color:var(--green-glow); }
+  .note__icon { flex-shrink:0; font-size:15px; }
+  .note strong { color:inherit; }
+  .note .lnk { color:var(--accent-glow); }
+
+  /* ─── INFO BLOCK ─── */
+  .info-block { padding:14px 20px; border-bottom:1px solid var(--border); font-size:13.5px; color:var(--text-secondary); line-height:1.7; }
+  .info-block:last-child { border-bottom:none; }
+  .info-block strong { color:var(--text-primary); font-weight:600; }
+  .info-block p { margin-bottom:8px; }
+  .info-block p:last-child { margin-bottom:0; }
+
+  /* ─── TERM ─── */
+  .term { padding:16px 20px; border-bottom:1px solid var(--border); }
+  .term:last-child { border-bottom:none; }
+  .term__name { font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--accent-glow); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:7px; }
+  .term__def { font-size:14px; color:var(--text-primary); font-weight:500; margin-bottom:8px; line-height:1.55; }
+  .term__example { font-size:13px; color:var(--text-secondary); line-height:1.65; padding:10px 14px; background:rgba(124,91,245,0.06); border-left:2px solid rgba(124,91,245,0.3); border-radius:0 6px 6px 0; }
+  .mono { font-family:'JetBrains Mono',monospace; color:var(--accent-glow); font-size:12px; }
+
+  /* ─── TABLE ─── */
+  .data-table { width:100%; font-size:13px; border-collapse:collapse; }
+  .data-table th { text-align:left; font-weight:600; color:var(--text-muted); font-family:'JetBrains Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:1.2px; padding:10px 20px; border-bottom:1px solid var(--border); background:rgba(0,0,0,0.2); }
+  .data-table td { padding:11px 20px; border-bottom:1px solid var(--border); color:var(--text-secondary); vertical-align:top; line-height:1.5; }
+  .data-table tr:last-child td { border-bottom:none; }
+  .data-table td:first-child { color:var(--text-primary); font-weight:600; }
+
+  /* ─── ARCH BOX ─── */
+  .arch-box { background:rgba(0,0,0,0.3); border:1px solid var(--border-accent); border-radius:10px; padding:18px 22px; margin:12px 20px; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text-secondary); line-height:2; white-space:pre; overflow-x:auto; }
+
+  /* ─── PROMPT BLOCK ─── */
+  .prompt-block { background:rgba(0,0,0,0.25); border:1px solid var(--border-accent); border-radius:10px; padding:18px 20px; margin:12px 16px; }
+  .prompt-block__title { font-size:13px; font-weight:700; color:var(--accent-glow); margin-bottom:10px; display:flex; align-items:center; gap:8px; font-family:'JetBrains Mono',monospace; text-transform:uppercase; letter-spacing:1px; }
+  .prompt-block__text { font-size:13px; color:var(--text-secondary); line-height:1.7; white-space:pre-wrap; margin-bottom:14px; word-break:break-word; }
+  .btn-copy { display:inline-flex; align-items:center; gap:6px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; color:var(--accent-glow); background:var(--accent-soft); border:1px solid rgba(124,91,245,0.3); padding:8px 16px; border-radius:8px; cursor:pointer; transition:all .2s; text-transform:uppercase; letter-spacing:1px; }
+  .btn-copy:hover { background:rgba(124,91,245,0.2); border-color:var(--accent); }
+  .btn-copy.copied { color:var(--green); background:var(--green-soft); border-color:rgba(52,211,153,0.3); }
+
+  /* ─── CODE BLOCK ─── */
+  .code-block { background:rgba(0,0,0,0.4); border:1px solid var(--border-accent); border-radius:10px; padding:16px 20px; margin:12px 16px; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--green-glow); line-height:1.8; white-space:pre-wrap; word-break:break-all; overflow-x:auto; }
+  .code-block__label { font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:8px; display:block; }
+  .code-block .btn-copy { margin-top:12px; }
+
+  /* ─── CMD COPY ─── */
+  .cmd-copy { background:rgba(0,0,0,0.35); border:1px solid var(--border-accent); border-radius:8px; padding:10px 14px; margin:8px 0; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .cmd-copy__text { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--green-glow); line-height:1.6; word-break:break-all; flex:1; white-space:pre-wrap; }
+  .cmd-copy .btn-copy { flex-shrink:0; padding:5px 12px; font-size:10px; }
+
+  /* ─── SPOILER ─── */
+  .spoiler { border-bottom:1px solid var(--border); }
+  .spoiler:last-child { border-bottom:none; }
+  .spoiler summary { padding:14px 20px; font-size:13.5px; font-weight:600; color:var(--text-secondary); cursor:pointer; list-style:none; display:flex; align-items:center; gap:8px; transition:color .2s; }
+  .spoiler summary:hover { color:var(--text-primary); }
+  .spoiler summary::before { content:'▸'; font-size:12px; transition:transform .2s; }
+  .spoiler[open] summary::before { transform:rotate(90deg); }
+  .spoiler__content { padding:0 20px 16px 34px; font-size:13px; color:var(--text-secondary); line-height:1.7; }
+  .spoiler__content p { margin-bottom:8px; }
+  .spoiler__content strong { color:var(--text-primary); font-weight:600; }
+
+  /* ─── SECTION DIVIDER ─── */
+  .section-divider { text-align:center; margin:48px 0 32px; padding:0 20px; }
+  .section-divider__line { height:1px; background:linear-gradient(90deg,transparent,var(--accent),transparent); margin-bottom:20px; }
+  .section-divider__title { font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--accent-glow); text-transform:uppercase; letter-spacing:3px; }
+
+  /* ─── FOOTER ─── */
+  .footer { text-align:center; margin-top:48px; }
+  .footer__done { display:none; background:var(--green-soft); border:1px solid rgba(52,211,153,0.25); border-radius:var(--radius); padding:32px 24px; margin-bottom:24px; }
+  .footer__done.visible { display:block; animation:popIn .5s cubic-bezier(.34,1.56,.64,1) both; }
+  .footer__done-emoji { font-size:48px; margin-bottom:10px; }
+  .footer__done-text { font-size:22px; font-weight:800; color:var(--green); margin-bottom:6px; }
+  .footer__done-sub { font-size:15px; color:var(--text-secondary); }
+  .footer__schedule { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:20px 24px; margin-bottom:20px; font-size:14px; }
+  .footer__schedule-title { font-weight:700; margin-bottom:8px; font-size:15px; }
+  .footer__schedule-row { display:flex; justify-content:space-between; padding:4px 0; color:var(--text-secondary); }
+  .footer__schedule-row span:first-child { color:var(--text-primary); font-weight:500; }
+  .footer__contact { font-size:14px; color:var(--text-secondary); margin-bottom:20px; }
+  .footer__contact a { color:#2dd4bf; text-decoration:underline; text-decoration-color:rgba(45,212,191,0.4); font-weight:700; }
+  .btn-reset { background:none; border:1px solid var(--border); color:var(--text-muted); font-family:'JetBrains Mono',monospace; font-size:12px; padding:8px 20px; border-radius:100px; cursor:pointer; transition:all .2s; }
+  .btn-reset:hover { border-color:var(--red); color:var(--red); }
+  .tg { color:#2dd4bf !important; font-weight:700; text-decoration:underline; text-decoration-color:rgba(45,212,191,0.4); }
+  #confetti-canvas { position:fixed; inset:0; z-index:9999; pointer-events:none; }
+  @keyframes fadeDown { from{opacity:0;transform:translateY(-12px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes popIn { from{opacity:0;transform:scale(0.8)} to{opacity:1;transform:scale(1)} }
+
+  @media (max-width:480px) {
+    .wrapper { padding:28px 14px 60px; }
+    .item,.note,.term,.info-block,.res-block { padding:12px 16px; }
+    .cmd-copy { padding:8px 12px; flex-direction:column; align-items:flex-start; }
+    .progress-wrap { padding:16px 18px; top:8px; }
+    .footer__schedule-row { flex-direction:column; gap:2px; }
+    .data-table th,.data-table td { padding:8px 14px; }
+    .arch-box { margin:10px 14px; font-size:11px; padding:14px 16px; }
+    .prompt-block { margin:10px 12px; }
+    .code-block { margin:10px 12px; font-size:11px; }
+    .header__title { font-size:22px; }
+  }
+  .footer__final-part3 { background:linear-gradient(135deg,rgba(251,191,36,0.08),rgba(219,39,119,0.08)); border:1px solid rgba(251,191,36,0.25); border-radius:var(--radius); padding:34px 24px; margin-bottom:24px; text-align:center; position:relative; overflow:hidden; }
+  .footer__final-part3::before { content:''; position:absolute; inset:0; background:radial-gradient(circle at 20% 0%, rgba(251,191,36,0.12), transparent 50%), radial-gradient(circle at 80% 100%, rgba(219,39,119,0.12), transparent 50%); pointer-events:none; }
+  .footer__final-emoji { font-size:54px; margin-bottom:12px; line-height:1; position:relative; }
+  .footer__final-text { font-size:24px; font-weight:800; background:linear-gradient(90deg,#fbbf24,#db2777); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:10px; letter-spacing:-0.4px; position:relative; }
+  .footer__final-sub { font-size:15px; color:var(--text-secondary); line-height:1.6; max-width:560px; margin:0 auto; position:relative; }
+</style>
+</head>
+<body>
+<canvas id="confetti-canvas"></canvas>
+<div class="wrapper">
+
+<!-- ═══ HEADER ═══ -->
+<header class="header">
+  <div class="header__badge">ИИ-ВИЗАЦИЯ: OPENCLAW · Урок 5</div>
+  <h1 class="header__title">n8n + Автоматизации + <span>Cron Jobs</span></h1>
+  <ul class="header__topics">
+    <li>Что такое n8n и зачем он нужен в связке с OpenClaw</li>
+    <li>Покупка Домена №2 — отдельный, закрытый, для вашего n8n</li>
+    <li>Разворачиваем n8n на своём сервере и Домене №2</li>
+    <li>2FA и безопасность n8n с первого дня</li>
+    <li>Подключение Google к n8n и OpenClaw (Calendar, Drive, Sheets, Gmail)</li>
+    <li>OpenClaw → n8n и уведомления от n8n в Telegram</li>
+    <li>Cron Jobs внутри OpenClaw — задачи по расписанию без n8n</li>
+    <li>Готовый сценарий: встреча → напоминание → запись финансов</li>
+  </ul>
+</header>
+
+<div class="progress-wrap">
+  <div class="progress-top">
+    <span class="progress-label">Прогресс</span>
+    <span class="progress-count" id="progressCount">0 / 0</span>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     00 — ПРЕДВАРИТЕЛЬНЫЕ ТРЕБОВАНИЯ
+═══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <div class="section__num">00</div>
+    <div class="section__title">Предварительные требования</div>
+  </div>
+  <div class="section__card">
+    <div class="note note--info">
+      <span class="note__icon">📋</span>
+      <span>Без всего, что ниже, пятый урок не пройти. Проверьте каждый пункт.</span>
+    </div>
+
+    <div class="info-block"><p><strong>Из предыдущих уроков:</strong></p></div>
+
+    <div class="item" data-key="prereq-vps">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">VPS-сервер с установленным OpenClaw (урок 3)</div>
+        <div class="item__hint">OpenClaw должен запускаться и отвечать в Telegram-боте.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="prereq-cc">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Claude Code установлен в VS Code и работает (урок 3)</div>
+        <div class="item__hint">SSH-подключение к VPS из VS Code настроено, «Режим бога» активен.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="prereq-bot">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Telegram-бот подключён к OpenClaw (урок 3)</div>
+        <div class="item__hint">Бот отвечает голосом и текстом.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="prereq-vpn">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">VPN включён</div>
+        <div class="item__hint">Если вы в РФ — ваш Amnezia VPN должен быть поднят. Без VPN Google Cloud Console может капризничать.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="prereq-domain1">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Домен №1 работает с GitHub Pages (урок 4)</div>
+        <div class="item__hint">Это проверка того, что вы прошли урок 4 полностью.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="prereq-google">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Google-аккаунт активен (создан в уроке 1)</div>
+        <div class="item__hint">Это тот же Gmail, что создавали в первом уроке.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="prereq-card">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Карта для оплаты Домена №2 (~$8–15/год)</div>
+        <div class="item__hint">Та же зарубежная виртуальная карта, что покупали Домен №1.</div>
+      </div>
+    </div>
+
+    <div class="info-block"><p><strong>Что понадобится нового в этом уроке:</strong></p></div>
+
+    <div class="item" data-key="prereq-auth-app">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Приложение-аутентификатор на телефоне</div>
+        <div class="item__hint">Google Authenticator. Нужно для 2FA в n8n. Если нет — поставьте прямо сейчас.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="prereq-pwmgr">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Менеджер паролей (рекомендация)</div>
+        <div class="item__hint">Любой менеджер паролей. В этом уроке у вас будет появляться много критичных паролей и токенов — лучше хранить их нормально, а не в заметках.</div>
+      </div>
+    </div>
+
+    <div class="note note--warn">
+      <span class="note__icon">⏱</span>
+      <span><strong>Этот урок длиннее предыдущих.</strong> Закладывайте <strong>4–6 часов</strong> плюс перерывы. Если устали — разбейте на два подхода: первая половина (секции 00–05), вторая половина (секции 06–11).</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     01 — НОВЫЕ ТЕРМИНЫ
+═══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <div class="section__num">01</div>
+    <div class="section__title">Новые термины урока</div>
+  </div>
+  <div class="section__card">
+    <div class="note note--info">
+      <span class="note__icon">📖</span>
+      <span>Теоретический блок — смотрим вместе с видеоуроком. Здесь собраны все ключевые понятия урока 5. Возвращайтесь к ним в любой момент.</span>
+    </div>
+
+    <div class="term">
+      <div class="term__name">n8n (читается «н-эйт-н», от «nodemation»)</div>
+      <div class="term__def">Платформа для визуального создания автоматизаций. Вы собираете процессы из блоков-нод (триггер → действие → действие), без написания кода.</div>
+      <div class="term__example">📌 «Когда приходит письмо с темой "Счёт" → сохрани вложение на Google Drive → добавь строку в Google Sheets → напиши мне в Telegram». Этот сценарий в n8n собирается за 10 минут мышкой.</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">Workflow (воркфлоу)</div>
+      <div class="term__def">Один цельный сценарий автоматизации в n8n. Состоит из триггера и последовательности нод.</div>
+      <div class="term__example">📌 «Workflow: Напоминание о встрече за 1 час» — один воркфлоу. «Workflow: Запись платежа в таблицу» — другой воркфлоу. Они могут работать независимо или вызывать друг друга.</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">Node (нода, узел)</div>
+      <div class="term__def">Один блок внутри workflow — одно действие или одно соединение с сервисом. Бывает нодой-триггером (старт) или нодой-действием (шаг).</div>
+      <div class="term__example">📌 Нода <span class="mono">Google Calendar: Create Event</span> создаёт событие. Нода <span class="mono">Gmail: Send</span> отправляет письмо. Нода <span class="mono">If</span> проверяет условие.</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">Trigger (триггер)</div>
+      <div class="term__def">Событие, которое запускает workflow. Именно оно «нажимает кнопку старт».</div>
+      <div class="term__example">📌 Триггеры в n8n — «каждый день в 9:00» (cron), «когда приходит webhook по URL», «когда в календаре появляется новое событие», «когда в папке Drive появляется файл».</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">Webhook (вебхук)</div>
+      <div class="term__def">URL-адрес, при обращении к которому запускается workflow. Идеальный способ связать OpenClaw с n8n.</div>
+      <div class="term__example">📌 n8n даёт вам URL вида <span class="mono">https://n8n.ваш-домен.com/webhook/abc123</span>. OpenClaw делает <span class="mono">POST</span> на этот URL — и workflow в n8n запускается с теми данными, что агент отправил.</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">OAuth 2.0</div>
+      <div class="term__def">Стандартный протокол, которым вы разрешаете одному сервису (n8n, OpenClaw) действовать от вашего имени в другом сервисе (Google). Без передачи пароля.</div>
+      <div class="term__example">📌 Когда вы нажимаете «Войти через Google» — это и есть OAuth. Вы разрешаете приложению доступ к определённым данным, и оно получает «токен» вместо пароля.</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">Client ID + Client Secret</div>
+      <div class="term__def">Два «ключа», которые Google выдаёт вашему проекту в Cloud Console. Их нужно вставить в n8n и в OpenClaw, чтобы они могли запросить OAuth-разрешение.</div>
+      <div class="term__example">📌 Client ID = «логин» вашего приложения. Client Secret = «пароль» вашего приложения. Оба публикуются в своих конфигурациях — Google узнаёт «ага, это тот самый проект Стаса».</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">Access Token + Refresh Token</div>
+      <div class="term__def">После OAuth-входа Google выдаёт два токена. <strong>Access</strong> — короткоживущий (час), используется для запросов. <strong>Refresh</strong> — долгоживущий, им обновляют Access. В режиме Testing refresh живёт <strong>7 дней</strong> → потом всё ломается.</div>
+      <div class="term__example">📌 Это важно! Подробно про 7 дней — в секции 06, часть 3.</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">Google Cloud Console</div>
+      <div class="term__def">Админка Google, где вы создаёте «проекты», включаете в них нужные API и получаете Client ID/Secret.</div>
+      <div class="term__example">📌 <span class="mono">console.cloud.google.com</span> — наш «рабочий кабинет» для подключения Google-сервисов к n8n и OpenClaw.</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">Cron / Cron Job</div>
+      <div class="term__def">Задача по расписанию. Синтаксис: 5 звёздочек (минуты часы день-месяца месяц день-недели). OpenClaw умеет запускать Cron Jobs внутри себя, без n8n.</div>
+      <div class="term__example">📌 <span class="mono">0 9 * * *</span> = каждый день в 9:00. <span class="mono">0 18 * * 5</span> = каждую пятницу в 18:00. <span class="mono">*/30 * * * *</span> = каждые 30 минут.</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">TOTP (2FA)</div>
+      <div class="term__def">Одноразовый шестизначный код, который меняется каждые 30 секунд в приложении-аутентификаторе. Стандарт двухфакторной аутентификации.</div>
+      <div class="term__example">📌 Вводите пароль + код из Google Authenticator. Даже если пароль украли — без вашего телефона не войдут.</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">API</div>
+      <div class="term__def">(Из урока 2) Способ, которым программы общаются. n8n общается с Google через Google API. OpenClaw общается с n8n через API n8n.</div>
+      <div class="term__example">📌 Вспомните ресторан из урока 2: n8n — новый официант, который умеет носить заказы между десятком кухонь.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     02 — АРХИТЕКТУРА
+═══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <div class="section__num">02</div>
+    <div class="section__title">Архитектура: как n8n встраивается в систему</div>
+  </div>
+  <div class="section__card">
+    <div class="note note--info">
+      <span class="note__icon">🗺️</span>
+      <span>Эту схему надо понять — от неё зависит всё дальнейшее. К концу урока все эти стрелки у вас реально заработают.</span>
+    </div>
+
+    <div class="arch-box">             Вы (идея, голос, текст)
+                        ↓
+            ┌───────────────────┐
+            │  Telegram-бот     │  ← Домен не нужен
+            └─────────┬─────────┘
+                      ↓
+            ┌───────────────────┐
+            │  OpenClaw (VPS)   │
+            │  «ИИ-директор»    │
+            └─────────┬─────────┘
+                      ↓
+      ┌───────────────┼──────────────┬──────────────┐
+      ↓               ↓              ↓              ↓
+ ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐
+ │ Cron Jobs│   │   n8n    │   │  GitHub  │   │  Google  │
+ │(OpenClaw)│   │(Домен №2)│   │(Домен №1)│   │  (API)   │
+ └──────────┘   └─────┬────┘   └──────────┘   └──────────┘
+                      ↓
+              ┌───────────────────┐
+              │   Google API      │
+              │ (Calendar, Drive, │
+              │   Sheets, Gmail)  │
+              └───────────────────┘</div>
+
+    <div class="info-block">
+      <p><strong>Что делает что:</strong></p>
+      <p>— <strong>OpenClaw</strong> — мозг. Принимает запрос, решает что делать, вызывает инструменты.<br>— <strong>Cron Jobs внутри OpenClaw</strong> — простые задачи агента по расписанию (напомнить, написать дайджест, проверить календарь). Без внешних инструментов.<br>— <strong>n8n</strong> — отдельная платформа для сложных многоступенчатых автоматизаций между сервисами. Живёт на отдельном домене.<br>— <strong>GitHub + Домен №1</strong> — публичные сайты и лендинги (из урока 4).<br>— <strong>Google API</strong> — календарь, диск, таблицы, почта. Подключаются и к n8n, и к OpenClaw.</p>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Когда использовать n8n vs Cron Jobs в OpenClaw:</strong></p>
+    </div>
+
+    <table class="data-table">
+      <tr><th>Задача</th><th>Где делаем</th><th>Почему</th></tr>
+      <tr><td>«Напомни мне каждое утро про встречи дня»</td><td>Cron Jobs</td><td>Простая задача, агент справляется сам</td></tr>
+      <tr><td>«Новое событие → SMS клиенту + папка Drive + строка в Sheets»</td><td>n8n</td><td>Многоступенчатый процесс с несколькими сервисами</td></tr>
+      <tr><td>«Каждую пятницу в 18:00 — сводка недели»</td><td>Cron Jobs</td><td>Агент берёт данные и пишет текст</td></tr>
+      <tr><td>«Платёж → CRM + чек в Drive + благодарственное письмо»</td><td>n8n</td><td>Разные сервисы, сложная логика</td></tr>
+      <tr><td>«Раз в час — Gmail с "срочно" → сообщи»</td><td>n8n</td><td>Там удобнее триггеры на входящее письмо</td></tr>
+    </table>
+
+    <div class="note note--green">
+      <span class="note__icon">💡</span>
+      <span><strong>Правило:</strong> простое — делаем в OpenClaw через Cron Jobs. Сложное или многосервисное — в n8n.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     03 — ДОМЕН №2
+═══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <div class="section__num">03</div>
+    <div class="section__title">Покупка Домена №2</div>
+  </div>
+  <div class="section__card">
+    <div class="note note--info">
+      <span class="note__icon">🌐</span>
+      <span>Домен №2 нужен строго под n8n. Он не будет публично промотируем, его не надо показывать клиентам. Это ваш закрытый рабочий инструмент.</span>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Зачем n8n отдельный домен:</strong></p>
+      <p>— <strong>Безопасность:</strong> n8n содержит все ваши рабочие сценарии и ключи от сервисов. Не стоит держать его на том же домене, что и публичные лендинги.<br>— <strong>Изоляция:</strong> если что-то сломается с Доменом №1 — n8n продолжит работать.<br>— <strong>Красивые URL вебхуков:</strong> <span class="mono">https://n8n.ваш-домен.com/webhook/...</span> выглядит профессионально.</p>
+    </div>
+
+    <div class="item" data-key="dom2-login">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Войти на Porkbun (там же, где покупали Домен №1)</div>
+        <div class="item__hint">Используем тот же аккаунт — удобнее управлять.<br>
+        <a href="https://porkbun.com" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> porkbun.com</a></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="dom2-buy">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Купить Домен №2</div>
+        <div class="item__hint"><strong>Рекомендации по имени:</strong><br>— короткое (до 15 символов)<br>— лучше зона <span class="mono">.com</span>, <span class="mono">.online</span> или <span class="mono">.app</span><br>— в имени — что-то про автоматизации или ваше имя: <span class="mono">&lt;имя&gt;-automation.com</span>, <span class="mono">my-n8n.online</span>, <span class="mono">workflows-&lt;имя&gt;.app</span><br>— примеры: <span class="mono">stasautomation.com</span>, <span class="mono">bitcoinschool-n8n.com</span>, <span class="mono">mariaflows.online</span><br>Примерная стоимость: <strong>$8–15/год</strong>.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="dom2-nopages">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">НЕ настраиваем GitHub Pages на этом домене</div>
+        <div class="item__hint">Домен №2 нужен только для n8n. GitHub Pages здесь не используем.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="dom2-save">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Сохранить название Домена №2 в заметках</div>
+        <div class="item__hint">Он будет использоваться во всех последующих секциях.</div>
+      </div>
+    </div>
+
+    <div class="note note--warn">
+      <span class="note__icon">💡</span>
+      <span>Если у вас уже есть свободный домен — можно использовать его. Главное чтобы он не был привязан к активному сайту.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     04 — РАЗВОРАЧИВАЕМ N8N
+═══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <div class="section__num">04</div>
+    <div class="section__title">Разворачиваем n8n на своём сервере и Домене №2</div>
+  </div>
+  <div class="section__card">
+    <div class="note note--info">
+      <span class="note__icon">🚀</span>
+      <span>Вся работа идёт через Claude Code. Вы не пишете команды руками — вы просите агента развернуть n8n. Агент делает всю техническую работу.</span>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Что произойдёт под капотом:</strong></p>
+      <p>1. Настроим DNS Домена №2 — направим его на IP вашего VPS<br>2. Дождёмся пропагации DNS (5–30 минут)<br>3. Claude Code поставит на VPS Docker (если ещё нет), затем n8n и Caddy (автоматический SSL)<br>4. По адресу <span class="mono">https://ваш-домен-2.com</span> откроется форма регистрации n8n</p>
+    </div>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Часть 1: Настройка DNS</div>
+    </div>
+
+    <div class="item" data-key="dns-open">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Открыть DNS-настройки Домена №2 на Porkbun</div>
+        <div class="item__hint">Porkbun → <strong>My Domains</strong> → ваш Домен №2 → <strong>DNS</strong></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="dns-delete">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Удалить все дефолтные A-записи</div>
+        <div class="item__hint">Porkbun ставит по умолчанию «parked» записи — их надо снести.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="dns-a-root">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Добавить A-запись: <span class="mono">@</span> → IP вашего VPS</div>
+        <div class="item__hint">Type: <strong>A</strong>, Host: оставить пустым (или <span class="mono">@</span>), Answer: <strong>ваш IP VPS</strong> (тот же, что в уроке 3). TTL: <span class="mono">600</span> (10 минут).</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="dns-a-www">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Добавить A-запись: <span class="mono">www</span> → IP вашего VPS</div>
+        <div class="item__hint">Type: <strong>A</strong>, Host: <span class="mono">www</span>, Answer: тот же IP.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="dns-save">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Сохранить изменения</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="dns-wait">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Подождать 5–30 минут, пока DNS распространится</div>
+        <div class="item__hint">Проверить можно командой <span class="mono">dig ваш-домен-2.com</span> или на сайте <a href="https://dnschecker.org" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> dnschecker.org</a></div>
+      </div>
+    </div>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Часть 2: Установка n8n через Claude Code</div>
+    </div>
+
+    <div class="item" data-key="n8n-vs-code">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Открыть VS Code с подключением к VPS (как в уроке 3)</div>
+        <div class="item__hint">Remote-SSH к серверу, «Режим бога» в Claude Code включён.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="n8n-docker-check">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Проверить что Docker установлен</div>
+        <div class="cmd-copy"><span class="cmd-copy__text" id="cmdDockerCheck">docker --version</span><button class="btn-copy" onclick="copyBlock('cmdDockerCheck',this)">📋 Скопировать</button></div>
+        <div class="item__hint">Если Docker не установлен (урок 3 прошёл не до конца) — просто скажите Claude Code «установи Docker».</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="n8n-install">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Запустить установку n8n через Claude Code</div>
+        <div class="item__hint">Отправьте промпт ниже в чат Claude Code. Замените <span class="mono">&lt;ВАШ_ДОМЕН_2&gt;</span> на реальный домен перед отправкой.</div>
+      </div>
+    </div>
+
+    <div class="prompt-block">
+      <div class="prompt-block__title">📋 Промпт: развернуть n8n на VPS</div>
+      <div class="prompt-block__text" id="promptN8nDeploy">Разверни n8n на моём VPS со следующими параметрами:
+
+1. Домен: &lt;ВАШ_ДОМЕН_2&gt;
+2. Использовать Docker Compose
+3. В качестве reverse-proxy использовать Caddy — чтобы SSL-сертификат
+   выписался автоматически от Let's Encrypt и продлевался сам.
+4. n8n должен стартовать при перезагрузке сервера (restart: unless-stopped).
+5. Данные n8n (workflows, credentials) сохранять в отдельный
+   Docker volume — чтобы они не потерялись при обновлении.
+6. После запуска проверь, что https://&lt;ВАШ_ДОМЕН_2&gt; открывается
+   и возвращает интерфейс n8n.
+
+Дополнительно:
+- Создай файл docker-compose.yml в папке /root/n8n/
+- Создай файл Caddyfile в той же папке
+- Все пароли и секреты — в .env файле рядом, не хардкодь
+- Выведи мне в конце:
+  • URL для входа
+  • Путь к файлам, которые ты создал</div>
+      <button class="btn-copy" onclick="copyBlock('promptN8nDeploy', this)">📋 Скопировать промпт</button>
+    </div>
+
+    <div class="item" data-key="n8n-wait">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Дождаться окончания установки (5–10 минут)</div>
+        <div class="item__hint">Claude Code напишет что-то вроде «n8n is running on https://...».</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="n8n-save-basic">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Сохранить логин и пароль от BASIC_AUTH в менеджер паролей</div>
+        <div class="item__hint">Это первый слой защиты. Без него никто даже не увидит форму входа n8n.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="n8n-open-browser">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Открыть <span class="mono">https://ваш-домен-2.com</span> в браузере</div>
+        <div class="item__hint">Должен появиться запрос логина/пароля от BASIC_AUTH → вводите → дальше увидите форму регистрации n8n.</div>
+      </div>
+    </div>
+
+    <div class="note note--green">
+      <span class="note__icon">✅</span>
+      <span>Если страница открылась с замочком 🔒 и показывает форму регистрации — <strong>n8n развёрнут успешно, SSL работает</strong>. Переходим к регистрации.</span>
+    </div>
+
+    <div class="note note--alert">
+      <span class="note__icon">🚨</span>
+      <span><strong>Если страница не открывается:</strong><br>— Проверьте DNS (<span class="mono">dig ваш-домен-2.com</span> должен показать ваш IP)<br>— Проверьте что контейнеры запущены: <span class="mono">docker ps</span> (должно быть минимум <span class="mono">n8n</span> и <span class="mono">caddy</span>)<br>— Посмотрите логи: <span class="mono">docker logs n8n</span> и <span class="mono">docker logs caddy</span><br>— Если застряли — напишите <a href="https://t.me/stavzzz" target="_blank" class="lnk" onclick="event.stopPropagation()">@stavzzz</a></span>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     05 — АВТОРИЗАЦИЯ + 2FA + MCP
+═══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <div class="section__num">05</div>
+    <div class="section__title">Первая авторизация в n8n + безопасность + 2FA + MCP</div>
+  </div>
+  <div class="section__card">
+    <div class="note note--info">
+      <span class="note__icon">🔐</span>
+      <span>n8n по умолчанию не защищён никак. Регистрируется первый пользователь — он становится owner'ом. Поэтому регистрируемся <strong>сразу</strong> и <strong>сразу</strong> включаем 2FA.</span>
+    </div>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Часть 1: Создание owner-аккаунта</div>
+    </div>
+
+    <div class="item" data-key="reg-fill">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">На форме регистрации ввести данные</div>
+        <div class="item__hint">— <strong>Email:</strong> ваш основной Gmail (из урока 1)<br>— <strong>First name / Last name</strong><br>— <strong>Password:</strong> 16+ символов, сгенерированный менеджером паролей<br>Не используйте «свой любимый пароль» — сгенерируйте новый в менеджере паролей.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="reg-save-pwd">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Сохранить пароль в менеджере паролей</div>
+        <div class="item__hint">Если потеряете — восстановить сложно, придётся через сервер лезть в базу n8n.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="reg-started">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Нажать «Get started»</div>
+        <div class="item__hint">После регистрации сразу попадёте в главный интерфейс n8n.</div>
+      </div>
+    </div>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Часть 2: Включение 2FA</div>
+    </div>
+
+    <div class="note note--warn">
+      <span class="note__icon">⚠️</span>
+      <span><strong>Это обязательный шаг.</strong> n8n хранит ключи от вашей Google-почты, календаря, диска. Если его взломают — получат всё.</span>
+    </div>
+
+    <div class="item" data-key="2fa-settings">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Открыть <strong>Settings</strong> (иконка настроек слева внизу)</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="2fa-personal">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Перейти в раздел <strong>Personal</strong></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="2fa-find">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Найти блок <strong>Two-factor authentication</strong></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="2fa-enable">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Нажать <strong>Enable</strong></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="2fa-app">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Открыть приложение-аутентификатор на телефоне</div>
+        <div class="item__hint">Google Authenticator.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="2fa-scan">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Отсканировать QR-код из n8n</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="2fa-verify">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Ввести 6-значный код из приложения → <strong>Verify</strong></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="2fa-recovery">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Сохранить recovery codes в менеджер паролей</div>
+        <div class="item__hint">Это 8–10 одноразовых кодов для восстановления, если телефон потерян. Сохранить <strong>ОБЯЗАТЕЛЬНО</strong>. Бумажка в ящике стола тоже подойдёт.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="2fa-relogin">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Выйти из n8n и зайти заново</div>
+        <div class="item__hint">Проверяем, что 2FA реально включилась. При логине должен запросить 6-значный код.</div>
+      </div>
+    </div>
+
+    <div class="note note--green">
+      <span class="note__icon">🛡️</span>
+      <span>С этого момента в ваш n8n нельзя зайти без: <strong>1)</strong> BASIC_AUTH (логин/пароль на Caddy), <strong>2)</strong> Email + пароль аккаунта n8n, <strong>3)</strong> 6-значный код из приложения. <strong>Три слоя защиты — спать спокойно.</strong></span>
+    </div>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Часть 3: Базовая настройка безопасности</div>
+    </div>
+
+    <div class="item" data-key="sec-users">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Settings → Users: убедитесь, что вы единственный пользователь</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="sec-ext">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Settings → External Secrets: пока пусто</div>
+        <div class="item__hint">Используем в будущем для продвинутых сценариев.</div>
+      </div>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Правила безопасности n8n:</strong></p>
+      <p>— Не публикуйте URL вашего n8n нигде публично<br>— Не делитесь скриншотами с видимыми Webhook URL или credentials<br>— Регулярно обновляйте n8n: раз в месяц просите Claude Code «обнови n8n до последней версии»<br>— Если заподозрили утечку пароля — сразу смените пароль + пересоздайте 2FA<br>— Recovery-коды храните в двух местах (менеджер паролей + оффлайн копия)</p>
+    </div>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Часть 4: Подключение Claude Code к n8n через MCP</div>
+    </div>
+
+    <div class="note note--info">
+      <span class="note__icon">🧠</span>
+      <span>MCP (Model Context Protocol) — стандарт, которым Claude Code общается с внешними сервисами. Подключив MCP-сервер n8n, вы даёте Claude Code глубокое понимание всех <strong>535+ нод n8n</strong> — он перестанет галлюцинировать имена полей и начнёт собирать рабочие workflow с первой попытки.</span>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Есть два MCP-сервера для n8n:</strong></p>
+      <p>— <strong>Официальный</strong> от n8n GmbH — встроен во все версии n8n (нужна 2.18.4+). Умеет искать, смотреть детали и запускать workflow, а после обновления весной 2026 — ещё и <strong>создавать и править workflow с нуля</strong> прямо в вашем n8n по текстовому запросу. Подключается в Claude Desktop одним кликом через Connectors → Directory → n8n. Как подключить — <a href="https://docs.n8n.io/connect/connect-to-n8n-mcp-server" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> офиц. документация n8n MCP</a>.</p>
+      <p>— <strong>Community-пакет <span class="mono">n8n-mcp</span></strong> от Czlonkowski — даёт Claude Code полную документацию по всем нодам, умеет валидировать и <strong>создавать workflow с нуля</strong>. С ним вайб-кодинг автоматизаций в Claude Code работает заметно лучше.</p>
+      <p><strong>Что выбрать — решаете вы.</strong> Оба варианта рабочие и делают похожие вещи: официальный проще подключить и теперь тоже умеет собирать workflow, community-пакет глубже заточен под вайб-кодинг в Claude Code. Как работать и какой MCP использовать — на ваше усмотрение. Дальше в уроке показываем на примере community-пакета.</p>
+    </div>
+
+    <div class="item" data-key="mcp-apikey">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Создать API Key в своём n8n</div>
+        <div class="item__hint">Settings → <strong>n8n API</strong> → <strong>Create API Key</strong>. Скопировать ключ — он понадобится в следующем шаге. Сохранить в менеджер паролей.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="mcp-install">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Выполнить команду установки MCP через терминал VS Code</div>
+        <div class="item__hint">Замените <span class="mono">&lt;ВАШ_ДОМЕН_2&gt;</span> и <span class="mono">&lt;ВАШ_N8N_API_KEY&gt;</span> на свои значения.</div>
+        <div class="cmd-copy"><span class="cmd-copy__text" id="cmdMcpAdd">claude mcp add n8n-mcp \
+  -e MCP_MODE=stdio \
+  -e LOG_LEVEL=error \
+  -e DISABLE_CONSOLE_OUTPUT=true \
+  -e N8N_API_URL=https://&lt;ВАШ_ДОМЕН_2&gt; \
+  -e N8N_API_KEY=&lt;ВАШ_N8N_API_KEY&gt; \
+  -- npx n8n-mcp</span><button class="btn-copy" onclick="copyBlock('cmdMcpAdd',this)">📋 Скопировать</button></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="mcp-restart">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Перезапустить Claude Code</div>
+        <div class="item__hint">Закройте и заново откройте сессию, чтобы подхватился новый MCP-сервер.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="mcp-check">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Проверить подключение</div>
+        <div class="item__hint">В чате Claude Code выполнить команду <span class="mono">/mcp</span> — должен появиться <span class="mono">n8n-mcp</span> в списке со статусом <strong>«connected»</strong>. Если нет — посмотрите логи через <span class="mono">claude mcp list</span>.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="mcp-test">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Тестовый промпт — убедиться, что Claude Code видит ваш n8n</div>
+        <div class="item__hint">Отправьте в Claude Code промпт ниже. Если вернулся список (или «у вас нет workflow» — если n8n пустой) — всё работает.</div>
+      </div>
+    </div>
+
+    <div class="prompt-block">
+      <div class="prompt-block__title">📋 Промпт: проверка MCP-связки</div>
+      <div class="prompt-block__text" id="promptMcpTest">Используя n8n-mcp, покажи мне список всех workflow
+в моём n8n. Для каждого напиши имя, статус (active/inactive)
+и количество нод.</div>
+      <button class="btn-copy" onclick="copyBlock('promptMcpTest', this)">📋 Скопировать промпт</button>
+    </div>
+
+    <div class="note note--green">
+      <span class="note__icon">🎉</span>
+      <span>С этого момента ваш Claude Code <strong>знает n8n как родной</strong>. Можно просить его создавать workflow целиком одним промптом — ноды он подберёт правильно, поля не выдумает.</span>
+    </div>
+
+    <div class="res-block">
+      <div class="res-block__title">🔗 Полезные ссылки по MCP</div>
+      <div class="res-block__sub">
+        <a href="https://github.com/czlonkowski/n8n-mcp" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> github.com/czlonkowski/n8n-mcp — репозиторий community-пакета</a><br>
+        <a href="https://github.com/czlonkowski/n8n-mcp/blob/main/docs/CLAUDE_CODE_SETUP.md" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> Гайд по Claude Code setup</a><br>
+        <a href="https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-langchain.mcptrigger/" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> Документация MCP Server Trigger в n8n</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     06 — ПОДКЛЮЧЕНИЕ GOOGLE
+═══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <div class="section__num">06</div>
+    <div class="section__title">Подключение Google к n8n и OpenClaw</div>
+  </div>
+  <div class="section__card">
+    <div class="note note--info">
+      <span class="note__icon">🔑</span>
+      <span>Это самая длинная и самая важная секция урока. Проходите её по порядку, не перескакивайте. Разбита на 7 частей.</span>
+    </div>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Часть 1: Google Cloud Console</div>
+    </div>
+
+    <div class="note note--info">
+      <span class="note__icon">💡</span>
+      <span>Мы создаём <strong>один</strong> проект в Google Cloud Console и используем его И для n8n, И для OpenClaw. Не нужно делать два разных проекта.</span>
+    </div>
+
+    <div class="item" data-key="gcp-open">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Открыть Google Cloud Console</div>
+        <div class="item__hint">Авторизуйтесь под тем Gmail, который хотите использовать. Это может быть ваш основной Gmail.<br>
+        <a href="https://console.cloud.google.com" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> console.cloud.google.com</a></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="gcp-project">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Создать новый проект</div>
+        <div class="item__hint">Верхняя панель → кнопка с именем текущего проекта → <strong>New Project</strong>.<br>— <strong>Имя проекта:</strong> например, <span class="mono">OpenClaw Automations</span><br>— <strong>Organization:</strong> оставить по умолчанию<br>— Нажать <strong>Create</strong>, подождать 10–30 секунд.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="gcp-select">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Убедиться, что создаваемый проект выбран</div>
+        <div class="item__hint">Сверху в плашке должно быть имя нового проекта.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="gcp-apis">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Включить нужные API (последовательно 4 штуки)</div>
+        <div class="item__hint">Для каждого: вводите название в поиск → открываете карточку → <strong>Enable</strong> → ждёте подтверждения → идёте к следующему.<br>— Google Calendar API<br>— Google Drive API<br>— Google Sheets API<br>— Gmail API<br>
+        <a href="https://console.cloud.google.com/apis/library" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> console.cloud.google.com/apis/library</a></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="gcp-check">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Проверить список включённых API</div>
+        <div class="item__hint">Должны быть видны все 4 API в списке «Enabled APIs &amp; Services».<br>
+        <a href="https://console.cloud.google.com/apis/dashboard" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> console.cloud.google.com/apis/dashboard</a></div>
+      </div>
+    </div>
+
+    <div class="note note--green">
+      <span class="note__icon">✅</span>
+      <span>API включены. Теперь настраиваем OAuth.</span>
+    </div>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Часть 2: Google Auth Platform (OAuth consent screen)</div>
+    </div>
+
+    <div class="note note--info">
+      <span class="note__icon">💡</span>
+      <span>Google Auth Platform — это та самая страничка «Приложение хочет получить доступ к...», которую увидите вы (и только вы) при подключении. Её надо правильно заполнить.</span>
+    </div>
+
+    <div class="note note--info">
+      <span class="note__icon">ℹ️</span>
+      <span>В конце 2025 года Google <strong>переработал интерфейс</strong>: раздел «OAuth consent screen» переименован в <strong>Google Auth Platform</strong>, шаги перегруппированы. Логика та же, названия другие — ниже актуальная последовательность.</span>
+    </div>
+
+    <div class="item" data-key="oauth-open">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Шаг 1. Открыть Google Auth Platform</div>
+        <div class="item__hint">В левом меню Cloud Console → <strong>APIs &amp; Services</strong> → <strong>OAuth consent screen</strong> (или напрямую <strong>Google Auth Platform</strong>). Откроется мастер из 4 шагов: <span class="mono">App Information</span> → <span class="mono">Audience</span> → <span class="mono">Contact Information</span> → <span class="mono">Finish</span>.<br>
+        <a href="https://console.cloud.google.com/auth/overview" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> console.cloud.google.com/auth/overview</a></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="oauth-basic">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Шаг 2. App Information — основная информация</div>
+        <div class="item__hint">— <strong>App name:</strong> <span class="mono">OpenClaw Automations</span> (или любое)<br>— <strong>User support email:</strong> ваш Gmail<br>Нажать <strong>Next</strong>.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="oauth-usertype">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Шаг 3. Audience — выбрать тип пользователей</div>
+        <div class="item__hint">— <strong>Если у вас обычный Gmail (@gmail.com)</strong> → выбрать <strong>External</strong>. Другой вариант Google не даст сохранить.<br>— <strong>Если у вас Google Workspace (корпоративная почта)</strong> → выбрать <strong>Internal</strong>. Это сильно упрощает жизнь: не надо проходить верификацию, токены не протухают через 7 дней.<br>Нажать <strong>Next</strong>.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="oauth-contact">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Шаг 4. Contact Information — контакты разработчика</div>
+        <div class="item__hint">— <strong>Developer contact email:</strong> ваш Gmail<br>Нажать <strong>Next</strong>.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="oauth-summary">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Шаг 5. Finish — подтвердить и попасть в Overview</div>
+        <div class="item__hint">Поставить галочку согласия с <strong>Google API Services User Data Policy</strong> и нажать <strong>Continue</strong>. Вас вернёт на главную Google Auth Platform.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="oauth-testusers">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Шаг 6. Добавить Test users</div>
+        <div class="item__hint">В левом меню раздел <strong>Audience</strong> → промотать вниз до блока <strong>Test users</strong> → <strong>Add users</strong> → ввести свой Gmail → <strong>Save</strong>.<br>Это <strong>КРИТИЧНО</strong>. В режиме <span class="mono">Testing</span> только добавленные сюда аккаунты смогут пройти OAuth-вход.</div>
+      </div>
+    </div>
+
+    <div class="note note--warn">
+      <span class="note__icon">⚠️</span>
+      <span>Сейчас ваше приложение в режиме <strong>Testing</strong>. Это значит:<br>— Только Gmail'ы из списка Test users смогут подключаться<br>— <strong>Refresh token живёт только 7 дней</strong> → через неделю ВСЕ интеграции перестают работать<br>— Надо либо перевести в Production (Часть 3), либо каждую неделю пересоздавать токен</span>
+    </div>
+
+    <div class="note note--info">
+      <span class="note__icon">💡</span>
+      <span><strong>Где теперь Scopes?</strong> В новом интерфейсе скоупов в мастере нет — Google убрал этот шаг. Скоупы запрашиваются автоматически в момент создания OAuth Client ID (Часть 4 этой секции). Просто пропускайте — ничего настраивать сейчас не нужно.</span>
+    </div>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Часть 3: Testing vs Production — 7-дневный токен</div>
+    </div>
+
+    <div class="note note--alert">
+      <span class="note__icon">🚨</span>
+      <span>Прочитайте этот блок до конца. Без понимания этого момента через неделю у вас сломаются все автоматизации.</span>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Почему токен протухает через 7 дней</strong></p>
+      <p>Google в 2020 году ввёл политику безопасности: OAuth-приложения в режиме <span class="mono">Testing</span> получают refresh token, который действителен <strong>7 дней</strong>. После этого — надо заново проходить OAuth.</p>
+      <p>Это НЕ баг. Это защита от забытых тестовых приложений. Но для нас это проблема.</p>
+      <p><strong>У вас два пути. Выбирайте тот, что подходит.</strong></p>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Путь А. Перевести приложение в Production (рекомендуется)</strong></p>
+      <p><strong>Подходит, если:</strong> ваше приложение использует только базовые scopes (Calendar, Drive, Sheets, Gmail — не sensitive); вы согласны опубликовать приложение.</p>
+      <p><strong>Минусы:</strong> для sensitive/restricted scopes (например, полный доступ к Gmail) Google требует полной верификации через app assessment — недели, $4000+. <strong>Нам это не нужно.</strong> Для базовых scopes верификация часто не требуется — можно использовать приложение сразу после перевода в Production.</p>
+    </div>
+
+    <div class="item" data-key="path-a-status">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Шаг 1. Открыть <strong>Google Auth Platform → Audience</strong></div>
+        <div class="item__hint">В левом меню Cloud Console.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="path-a-publish">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Шаг 2. Нажать <strong>Publish app</strong></div>
+        <div class="item__hint">Кнопка находится в верхней части раздела <strong>Audience</strong> в блоке <strong>Publishing status</strong> (текущий статус — <span class="mono">Testing</span>).</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="path-a-confirm">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Шаг 3. Подтвердить публикацию</div>
+        <div class="item__hint">Google покажет диалог <strong>«Push to production?»</strong> — нажать <strong>Confirm</strong>.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="path-a-get-status">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Шаг 4. Получить сообщение о статусе</div>
+        <div class="item__hint">— Если scopes базовые (что мы и используем) — статус станет <span class="mono">In production</span> сразу. Refresh token становится бессрочным (не протухает через 7 дней).<br>— Если scopes sensitive — Google попросит пройти верификацию. В этом случае либо проходите её, либо возвращайтесь на Путь Б.</div>
+      </div>
+    </div>
+
+    <div class="note note--green">
+      <span class="note__icon">✅</span>
+      <span>После перевода в Production: любой Gmail (не только из Test users) может проходить OAuth, <strong>refresh tokens не протухают через 7 дней</strong> — интеграции работают месяцами. <strong>Это главная рекомендация.</strong></span>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Путь Б. Остаться в Testing и обновлять токен раз в неделю</strong></p>
+      <p><strong>Подходит, если:</strong> вам лень проходить публикацию; вы используете только сами / с одним помощником; готовы раз в неделю тратить 5 минут на обновление.</p>
+    </div>
+
+    <div class="item" data-key="path-b-reminder">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Создать напоминание в календаре</div>
+        <div class="item__hint">«Обновить OAuth-токен Google для n8n и OpenClaw» — каждый понедельник в 10:00.<br>Позже в секции 09 сделаем это через Cron Jobs OpenClaw автоматически.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="path-b-refresh">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Когда токен протухает — обновить</div>
+        <div class="item__hint">— Открыть n8n → Settings → Credentials → найти Google-креденшалы<br>— Нажать на них → кнопка <strong>Sign in with Google</strong> → пройти заново<br>— Повторить для всех Google credentials (Calendar, Drive, Sheets, Gmail)<br>— Если такая же ошибка в OpenClaw — см. Часть 6 этой секции.</div>
+      </div>
+    </div>
+
+    <div class="note note--warn">
+      <span class="note__icon">💡</span>
+      <span>Путь Б работает, но через 3–4 недели вам это надоест. Производственные автоматизации должны работать без ручного обновления токенов. <strong>Рекомендация — Путь А.</strong></span>
+    </div>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Часть 4: Создаём OAuth 2.0 Client ID</div>
+    </div>
+
+    <div class="note note--info">
+      <span class="note__icon">🔑</span>
+      <span>Client ID и Client Secret нужны И для n8n, И для OpenClaw. Один Client ID подходит обоим.</span>
+    </div>
+
+    <div class="item" data-key="cred-open">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Открыть Credentials</div>
+        <div class="item__hint">В левом меню <strong>APIs &amp; Services</strong> → <strong>Credentials</strong>.<br>
+        <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> console.cloud.google.com/apis/credentials</a></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="cred-create">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Создать OAuth client ID</div>
+        <div class="item__hint">Нажать <strong>+ Create credentials</strong> → <strong>OAuth client ID</strong>.<br>— <strong>Application type:</strong> Web application<br>— <strong>Name:</strong> <span class="mono">n8n + OpenClaw</span></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="cred-redirects">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Добавить Authorized redirect URIs</div>
+        <div class="item__hint">Сюда надо вписать <strong>ДВА URL</strong> — один для n8n, один для OpenClaw. Если завтра добавите третий сервис — вернётесь сюда же и добавите ещё.</div>
+        <div class="cmd-copy"><span class="cmd-copy__text" id="cmdRedirectN8n">https://ваш-домен-2.com/rest/oauth2-credential/callback</span><button class="btn-copy" onclick="copyBlock('cmdRedirectN8n',this)">📋 Скопировать</button></div>
+        <div class="cmd-copy"><span class="cmd-copy__text" id="cmdRedirectOc">https://ваш-домен-1.com/oauth/callback</span><button class="btn-copy" onclick="copyBlock('cmdRedirectOc',this)">📋 Скопировать</button></div>
+        <div class="item__hint">Замените на ваши реальные домены. Если у OpenClaw пока нет домена (он живёт только в Telegram) — временно оставьте второй URL с <span class="mono">localhost:5678</span> или пропустите, а в Части 6 уточним.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="cred-create-btn">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Нажать <strong>Create</strong></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="cred-copy">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Скопировать Client ID и Client Secret</div>
+        <div class="item__hint">Появится окно с двумя строками. <strong>Сохраните обе в менеджер паролей прямо сейчас</strong> — потом Client Secret скрывается.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="cred-save">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Сохранить в заметки: Client ID и Client Secret</div>
+        <div class="item__hint">— <strong>Client ID:</strong> <span class="mono">xxxx.apps.googleusercontent.com</span><br>— <strong>Client Secret:</strong> <span class="mono">GOCSPX-xxxxx</span></div>
+      </div>
+    </div>
+
+    <div class="note note--green">
+      <span class="note__icon">✅</span>
+      <span>Готово. Теперь переходим к подключению — сначала n8n, потом OpenClaw.</span>
+    </div>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Часть 5: Подключение Google к n8n</div>
+    </div>
+
+    <div class="note note--info">
+      <span class="note__icon">🔌</span>
+      <span>В n8n подключаем каждый сервис отдельной credential. Но Client ID и Secret одни и те же.</span>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Сначала полный цикл на примере Google Calendar, потом повторяем для Drive / Sheets / Gmail.</strong></p>
+    </div>
+
+    <div class="item" data-key="n8n-cred-new">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Открыть n8n → Settings → Credentials → <strong>+ New credential</strong></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="n8n-cal-start">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Начать с Google Calendar</div>
+        <div class="item__hint">В поиске: <span class="mono">Google Calendar OAuth2 API</span>. Открыть → <strong>Continue</strong>.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="n8n-cal-fill">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Заполнить форму</div>
+        <div class="item__hint">— <strong>Client ID:</strong> вставить из Части 4<br>— <strong>Client Secret:</strong> вставить из Части 4</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="n8n-cal-signin">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Нажать <strong>Sign in with Google</strong></div>
+        <div class="item__hint">— Откроется окно Google OAuth<br>— Выбрать ваш Gmail (тот, что добавлен в Test users или любой, если вы в Production)<br>— Если появится предупреждение «Google hasn't verified this app» — нажать <strong>Advanced</strong> → <strong>Go to OpenClaw Automations (unsafe)</strong>. Это нормально для ваших собственных приложений.<br>— Разрешить все запрошенные доступы</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="n8n-cal-connected">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Вернуться в n8n — должна появиться галочка «Account connected»</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="n8n-cal-save">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Сохранить credential с именем <span class="mono">Google Calendar</span> → <strong>Save</strong></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="n8n-drive">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Повторить для Google Drive</div>
+        <div class="item__hint"><strong>+ New credential</strong> → <span class="mono">Google Drive OAuth2 API</span>. Те же Client ID и Secret. <strong>Sign in with Google</strong>. Имя: <span class="mono">Google Drive</span>.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="n8n-sheets">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Повторить для Google Sheets</div>
+        <div class="item__hint"><span class="mono">Google Sheets OAuth2 API</span>. Те же Client ID и Secret. Имя: <span class="mono">Google Sheets</span>.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="n8n-gmail">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Повторить для Gmail</div>
+        <div class="item__hint"><span class="mono">Gmail OAuth2</span>. Те же Client ID и Secret. Имя: <span class="mono">Gmail</span>.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="n8n-check-list">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Проверить список credentials</div>
+        <div class="item__hint">В Settings → Credentials должно быть 4 Google-подключения. У каждого — зелёная галочка.</div>
+      </div>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Быстрый тест n8n + Google Calendar:</strong></p>
+    </div>
+
+    <div class="item" data-key="test-new-wf">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Создать новый workflow</div>
+        <div class="item__hint">Главная страница n8n → <strong>+ Create Workflow</strong>.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="test-manual-trigger">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Добавить ноду <span class="mono">Manual Trigger</span></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="test-cal-node">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Добавить ноду <span class="mono">Google Calendar</span></div>
+        <div class="item__hint">— <strong>Credential:</strong> выбрать <span class="mono">Google Calendar</span><br>— <strong>Resource:</strong> <span class="mono">Event</span><br>— <strong>Operation:</strong> <span class="mono">Create</span><br>— <strong>Calendar:</strong> выбрать ваш основной календарь<br>— <strong>Start:</strong> сегодня + 1 час<br>— <strong>End:</strong> сегодня + 2 часа<br>— <strong>Summary:</strong> <span class="mono">Test из n8n</span></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="test-exec">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Нажать <strong>Execute workflow</strong></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="test-verify">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Открыть Google Calendar и проверить</div>
+        <div class="item__hint">Событие <span class="mono">Test из n8n</span> должно появиться.</div>
+      </div>
+    </div>
+
+    <div class="note note--green">
+      <span class="note__icon">🎉</span>
+      <span>Если событие появилось — Google + n8n работают.</span>
+    </div>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Часть 6: Подключение Google к OpenClaw</div>
+    </div>
+
+    <div class="note note--info">
+      <span class="note__icon">🤖</span>
+      <span>Подход к подключению Google к OpenClaw такой же простой, как и к n8n, но через скиллы и конфиг агента, а не через интерфейс. Мы не пишем код руками — всё делает Claude Code.</span>
+    </div>
+
+    <div class="note note--warn">
+      <span class="note__icon">⚠️</span>
+      <span>Конкретные команды и пути в вашей установке могут немного отличаться. Если какой-то шаг не сработал — просто скажите об этом Claude Code, покажите ошибку, и он починит. Не застревайте на мелочах.</span>
+    </div>
+
+    <div class="info-block">
+      <p><strong>6.1. Установка Google-скиллов (если нужны)</strong></p>
+    </div>
+
+    <div class="item" data-key="oc-vps-connect">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Подключиться к VPS через VS Code (Remote-SSH)</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="oc-install-skills">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Установить Google-скиллы через Claude Code</div>
+        <div class="item__hint">Отправьте промпт ниже в чат Claude Code.</div>
+      </div>
+    </div>
+
+    <div class="prompt-block">
+      <div class="prompt-block__title">📋 Промпт: установить Google-скиллы в OpenClaw</div>
+      <div class="prompt-block__text" id="promptOcInstallSkills">Мне нужно, чтобы OpenClaw умел работать с Google-сервисами:
+Calendar, Drive, Sheets, Gmail.
+
+Задачи:
+1. Проверь, какие Google-интеграции уже установлены в OpenClaw.
+2. Если каких-то из Calendar / Drive / Sheets / Gmail нет —
+   установи подходящие скиллы через clawhub
+   (посмотри в ClawHub что-то вроде google-workspace, google-calendar и т.д.).
+3. Покажи мне список того, что установил.
+4. Ничего не настраивай ещё — credentials буду добавлять
+   на следующем шаге.</div>
+      <button class="btn-copy" onclick="copyBlock('promptOcInstallSkills', this)">📋 Скопировать промпт</button>
+    </div>
+
+    <div class="info-block">
+      <p><strong>6.2. Добавить Client ID и Secret в конфигурацию OpenClaw</strong></p>
+    </div>
+
+    <div class="item" data-key="oc-set-creds">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Передать Client ID/Secret Claude Code для настройки</div>
+        <div class="item__hint">Отправьте промпт ниже. Замените <span class="mono">&lt;ВСТАВЬТЕ_...&gt;</span> на реальные значения перед отправкой.</div>
+      </div>
+    </div>
+
+    <div class="prompt-block">
+      <div class="prompt-block__title">📋 Промпт: настроить Google-креденшалы в OpenClaw</div>
+      <div class="prompt-block__text" id="promptOcSetCreds">У меня есть Google OAuth 2.0 Client ID и Client Secret,
+созданные в Google Cloud Console. Я хочу подключить
+Google (Calendar, Drive, Sheets, Gmail) к моему OpenClaw.
+
+Данные:
+• Client ID: <ВСТАВЬТЕ_СЮДА_CLIENT_ID>
+• Client Secret: <ВСТАВЬТЕ_СЮДА_CLIENT_SECRET>
+• Redirect URI, который я уже прописал в Google Cloud Console:
+  https://<ВАШ_ДОМЕН_1>/oauth/callback
+
+Задачи:
+1. Найди правильное место в конфигурации OpenClaw, где хранятся
+   секреты / credentials (скорее всего ~/.openclaw/.env
+   или аналогичное — проверь документацию по скиллам).
+2. Запиши туда Client ID и Client Secret под правильными именами
+   переменных (смотри, как именно их ждут установленные скиллы).
+3. Перезапусти OpenClaw, чтобы переменные подгрузились.
+4. Запусти процесс OAuth-авторизации — выдай мне ссылку,
+   по которой я зайду под своим Gmail и разрешу доступы.
+5. После того, как я пройду авторизацию, сохрани полученные токены
+   в стандартном для OpenClaw формате.
+6. Покажи мне в конце статус подключений: Calendar ✓ Drive ✓
+   Sheets ✓ Gmail ✓.
+
+Если какой-то из сервисов не подключается —
+напиши, что именно не работает, и предложи решение.</div>
+      <button class="btn-copy" onclick="copyBlock('promptOcSetCreds', this)">📋 Скопировать промпт</button>
+    </div>
+
+    <div class="item" data-key="oc-oauth-pass">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Пройти OAuth по ссылке, которую выдал Claude Code</div>
+        <div class="item__hint">Откроется страница Google → выбрать Gmail → разрешить доступы → вернуться обратно. Если увидите предупреждение «Google hasn't verified» → <strong>Advanced</strong> → <strong>Go to OpenClaw Automations</strong>.</div>
+      </div>
+    </div>
+
+    <div class="info-block">
+      <p><strong>6.3. Проверка OpenClaw + Google</strong></p>
+    </div>
+
+    <div class="item" data-key="oc-test-cal-send">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Telegram-боту: «Создай событие в моём календаре на завтра в 15:00 с названием "Тест OpenClaw + Google"»</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="oc-test-cal-verify">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Открыть Google Calendar — событие должно появиться</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="oc-test-drive-send">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Telegram-боту: «Создай в моём Google Drive новую папку "OpenClaw Test"»</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="oc-test-drive-verify">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Открыть Google Drive — папка должна появиться</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="oc-test-sheets-send">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Telegram-боту: «Создай новую Google Sheets таблицу "Тест OpenClaw" с колонками Дата, Операция, Сумма»</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="oc-test-sheets-verify">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Проверить в Google Sheets</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="oc-test-gmail-send">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Telegram-боту: «Покажи мне последние 3 непрочитанных письма из Gmail»</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="oc-test-gmail-verify">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Проверить, что бот показал реальные письма</div>
+      </div>
+    </div>
+
+    <div class="note note--green">
+      <span class="note__icon">🎉</span>
+      <span>Если все 4 теста прошли — OpenClaw + Google работают.</span>
+    </div>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Часть 7: Финальная проверка</div>
+    </div>
+
+    <div class="item" data-key="final-n8n-cal">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">n8n + Google Calendar — тестовое событие создано</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="final-n8n-drive">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">n8n + Google Drive — тестовая папка создана</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="final-n8n-sheets">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">n8n + Google Sheets — тестовая таблица создана</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="final-n8n-gmail">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">n8n + Gmail — тестовое письмо отправлено / прочитано</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="final-oc-cal">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">OpenClaw + Google Calendar — через бота создано событие</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="final-oc-drive">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">OpenClaw + Google Drive — через бота создана папка</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="final-oc-sheets">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">OpenClaw + Google Sheets — через бота создана таблица</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="final-oc-gmail">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">OpenClaw + Gmail — через бота прочитана почта</div>
+      </div>
+    </div>
+
+    <div class="res-block">
+      <div class="res-block__title">🔗 Полезные ссылки</div>
+      <div class="res-block__sub">
+        <a href="https://console.cloud.google.com" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> Google Cloud Console</a><br>
+        <a href="https://developers.google.com/identity/protocols/oauth2" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> Google OAuth2 docs</a><br>
+        <a href="https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googlecalendar/" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> n8n: Google Calendar node docs</a><br>
+        <a href="https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.googlesheets/" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> n8n: Google Sheets node docs</a>
+      </div>
+    </div>
+
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     07 — OPENCLAW → N8N + УВЕДОМЛЕНИЯ ОТ N8N
+═══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <div class="section__num">07</div>
+    <div class="section__title">OpenClaw → n8n + уведомления от n8n в Telegram</div>
+  </div>
+  <div class="section__card">
+    <div class="note note--info">
+      <span class="note__icon">🔄</span>
+      <span>У OpenClaw и n8n разные сильные стороны. В этой секции настроим две отдельные вещи: <strong>(1)</strong> OpenClaw будет отправлять данные в n8n через webhook, <strong>(2)</strong> n8n будет присылать вам уведомления в Telegram напрямую, минуя OpenClaw.</span>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Разбираемся на пальцах:</strong></p>
+      <p><strong>1. OpenClaw → n8n.</strong> Вы говорите агенту: «запиши платёж 50 тысяч». OpenClaw понимает, что вы сказали, и отправляет данные на специальный URL в n8n (webhook). n8n получает данные и делает свою работу — например, пишет строку в Google-таблицу. Telegram-бот в этой цепочке — только канал связи между <strong>вами и OpenClaw</strong>. С n8n бот не общается.</p>
+      <p><strong>2. n8n → вы (в Telegram).</strong> n8n сам пишет вам сообщение в Telegram, используя токен того же бота. OpenClaw это сообщение <strong>не видит и не обрабатывает</strong> — n8n просто использует Telegram Bot API, чтобы написать вам напрямую. Полезно, когда нужно уведомление от n8n не гоняя сообщение через агента.</p>
+      <p>⚠️ <strong>Конфликта нет.</strong> OpenClaw слушает ваши входящие сообщения. n8n только отправляет исходящие. Это разные функции Telegram Bot API — они друг другу не мешают.</p>
+    </div>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Часть 1: OpenClaw отправляет данные в n8n</div>
+    </div>
+
+    <div class="item" data-key="hook-create-wf">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">В n8n создать новый workflow: <span class="mono">From OpenClaw — universal webhook</span></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="hook-add-webhook">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Добавить ноду <span class="mono">Webhook</span></div>
+        <div class="item__hint">— <strong>HTTP Method:</strong> <span class="mono">POST</span><br>— <strong>Path:</strong> оставить по умолчанию (n8n сгенерирует случайный путь)<br>— <strong>Respond:</strong> <span class="mono">Immediately</span></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="hook-copy-url">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Скопировать Test URL вебхука</div>
+        <div class="item__hint">Выглядит как <span class="mono">https://n8n.ваш-домен-2.com/webhook-test/xxxxxx</span></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="hook-add-set">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Добавить ноду <span class="mono">Set</span> — чтобы видеть, что прилетело</div>
+        <div class="item__hint">Добавить поле <span class="mono">received_message</span> = <span class="mono">{{ $json.message }}</span></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="hook-save">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Сохранить workflow</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="hook-activate">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Активировать workflow (правый верхний угол — тумблер <span class="mono">Active</span>)</div>
+        <div class="item__hint">Как только активируете — Test URL заменится на Production URL, скопируйте его.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="hook-remember">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Сказать Claude Code / OpenClaw запомнить webhook</div>
+        <div class="item__hint">Отправьте промпт ниже в чат агента.</div>
+      </div>
+    </div>
+
+    <div class="prompt-block">
+      <div class="prompt-block__title">📋 Промпт: сохрани webhook в контексте агента</div>
+      <div class="prompt-block__text" id="promptHookSave">У меня есть webhook в n8n по адресу:
+https://n8n.ваш-домен-2.com/webhook/xxxxxx
+
+Запомни его в user.md как "n8n-webhook: universal".
+Когда я буду просить тебя "отправь в n8n ..." — делай POST-запрос
+на этот URL с телом {"message": "...", "source": "openclaw"}.</div>
+      <button class="btn-copy" onclick="copyBlock('promptHookSave', this)">📋 Скопировать промпт</button>
+    </div>
+
+    <div class="item" data-key="hook-test">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Протестировать</div>
+        <div class="item__hint">Написать боту: «Отправь в n8n сообщение: Привет, я OpenClaw». В n8n открыть выполнения (<strong>Executions</strong>) — должно появиться новое с вашим сообщением.</div>
+      </div>
+    </div>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Часть 2: n8n пишет вам в Telegram (минуя OpenClaw)</div>
+    </div>
+
+    <div class="info-block">
+      <p>💡 <strong>Что мы делаем в этой части:</strong> настраиваем n8n, чтобы он мог писать вам сообщения в Telegram через вашего бота. OpenClaw в этой цепочке не участвует — n8n напрямую использует Telegram Bot API, чтобы отправить уведомление как будто от бота.</p>
+      <p><strong>Типичные use cases:</strong></p>
+      <p>• n8n следит за новыми письмами → присылает уведомление в чат<br>• Сработал cron в n8n → приходит напоминание<br>• Пришёл платёж → n8n шлёт сводку</p>
+      <p>У нашего OpenClaw уже есть токен бота (настраивали в уроке 3) — его же и будем использовать.</p>
+    </div>
+
+    <div class="item" data-key="tg-cred">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">В n8n создать credential для Telegram</div>
+        <div class="item__hint">Settings → Credentials → <strong>+ New credential</strong> → <span class="mono">Telegram API</span>.<br>— <strong>Access Token:</strong> вставить токен вашего бота (тот же, что в OpenClaw)<br>— <strong>Name:</strong> <span class="mono">My OpenClaw Bot</span> → <strong>Save</strong></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="tg-node">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">В workflow добавить ноду <span class="mono">Telegram</span></div>
+        <div class="item__hint">— <strong>Credential:</strong> <span class="mono">My OpenClaw Bot</span><br>— <strong>Resource:</strong> <span class="mono">Message</span><br>— <strong>Operation:</strong> <span class="mono">Send Message</span><br>— <strong>Chat ID:</strong> ваш Telegram Chat ID<br>Как узнать свой Chat ID — написать боту <span class="mono">/start</span>, потом в адресе <span class="mono">https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</span> найти <span class="mono">chat":{"id":...}</span>.<br>— <strong>Text:</strong> например, <span class="mono">🤖 Привет от n8n! Время: {{ $now }}</span></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="tg-exec">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Запустить workflow вручную <strong>Execute workflow</strong></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="tg-verify">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Проверить Telegram — должно прийти сообщение от бота</div>
+      </div>
+    </div>
+
+    <div class="note note--green">
+      <span class="note__icon">🎉</span>
+      <span>Готово. Теперь OpenClaw может отправлять данные в n8n через webhook, а n8n может присылать вам уведомления в Telegram — по разным каналам, но через одного и того же бота.</span>
+    </div>
+
+    <div class="note note--info">
+      <span class="note__icon">💡</span>
+      <span>Если вы подключили <strong>n8n-MCP в Claude Code</strong> (секция 05, Часть 4) — теперь любой workflow из секций 08 и 10 можно создать <strong>одним промптом</strong> Claude Code, не заходя в UI n8n. Claude Code сам соберёт ноды, настроит connections и активирует workflow.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     08 — БАЗОВЫЕ АВТОМАТИЗАЦИИ
+═══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <div class="section__num">08</div>
+    <div class="section__title">Базовые автоматизации (примеры workflow)</div>
+  </div>
+  <div class="section__card">
+    <div class="note note--info">
+      <span class="note__icon">💡</span>
+      <span>В этой секции — готовые к использованию сценарии. Каждый можно собрать через Claude Code за 5–15 минут. Не пытайтесь собрать все сразу — выберите <strong>1–2</strong>, которые реально пригодятся вам в бизнесе.</span>
+    </div>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Автоматизация 1: Утренний дайджест встреч</div>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Что делает:</strong> каждое утро в 8:30 приходит сообщение в Telegram со списком встреч на день из Google Calendar.</p>
+    </div>
+
+    <div class="arch-box">[Cron: daily 8:30] → [Google Calendar: Get Events today] →
+  → [Function: форматировать список] → [Telegram: Send]</div>
+
+    <div class="prompt-block">
+      <div class="prompt-block__title">📋 Промпт: создать утренний дайджест</div>
+      <div class="prompt-block__text" id="promptAuto1">Создай workflow в n8n по адресу https://n8n.<ВАШ_ДОМЕН_2>.
+Имя workflow: "Morning Digest".
+
+Логика:
+1. Триггер: каждый будний день в 8:30 по московскому времени.
+2. Получить события из моего основного Google Calendar
+   на сегодняшний день.
+3. Сформировать красивое сообщение:
+   • Заголовок "🌅 План на сегодня, <дата>"
+   • Для каждого события: время, название, ссылка
+   • Если событий нет — "Свободный день"
+4. Отправить сообщение в Telegram на мой chat_id.
+
+Используй уже настроенные credentials Google Calendar и Telegram.
+Активируй workflow.</div>
+      <button class="btn-copy" onclick="copyBlock('promptAuto1', this)">📋 Скопировать промпт</button>
+    </div>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Автоматизация 2: Напоминание за 1 час</div>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Что делает:</strong> как только в Google Calendar появляется любое новое событие — n8n автоматически присылает в Telegram напоминание за 1 час до начала.</p>
+    </div>
+
+    <div class="prompt-block">
+      <div class="prompt-block__title">📋 Промпт: напоминания за час</div>
+      <div class="prompt-block__text" id="promptAuto2">Создай workflow "Pre-meeting Reminder".
+
+Логика:
+1. Триггер: Google Calendar — новое событие создано.
+2. Запланировать напоминание на start_time минус 1 час.
+3. В момент напоминания: отправить в Telegram сообщение
+   "⏰ Через час: <название события>".
+
+Для отложенного запуска используй встроенный Wait-нод
+или Cron, посчитав разницу с now().</div>
+      <button class="btn-copy" onclick="copyBlock('promptAuto2', this)">📋 Скопировать промпт</button>
+    </div>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Автоматизация 3: Новый файл на Drive → Telegram</div>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Что делает:</strong> когда в определённую папку на Google Drive кладётся новый файл — в Telegram падает уведомление.</p>
+    </div>
+
+    <div class="prompt-block">
+      <div class="prompt-block__title">📋 Промпт: уведомление о новых файлах</div>
+      <div class="prompt-block__text" id="promptAuto3">Создай workflow "New Drive File Notifier".
+
+Логика:
+1. Триггер: Google Drive — новый файл в папке "Inbox"
+   (папку я создам сам заранее).
+2. Получить имя, тип файла и ссылку.
+3. Отправить в Telegram сообщение:
+   "📎 Новый файл: <имя>, тип <тип>. Открыть: <ссылка>"</div>
+      <button class="btn-copy" onclick="copyBlock('promptAuto3', this)">📋 Скопировать промпт</button>
+    </div>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Автоматизация 4: Запись платежа голосом</div>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Что делает:</strong> говорите боту «записал платёж 50 000 от Иванова» — бот распознаёт голос, OpenClaw вызывает n8n-webhook, n8n добавляет строку в Google Sheets «Финансы».</p>
+    </div>
+
+    <div class="prompt-block">
+      <div class="prompt-block__title">📋 Промпт: запись платежа в таблицу</div>
+      <div class="prompt-block__text" id="promptAuto4">Создай workflow "Log Payment".
+
+Логика:
+1. Триггер: webhook. Принимает JSON
+   {"amount": "50000", "client": "Иванов", "note": "..."}
+2. Добавить строку в Google Sheets "Финансы 2026" лист "Поступления":
+   • Дата: сегодня
+   • Сумма: из payload
+   • Клиент: из payload
+   • Комментарий: из payload
+3. Вернуть webhook-ответ "OK".
+
+Также настрой OpenClaw: когда я говорю/пишу
+"записал платёж <сумма> от <имя>" —
+он должен звать этот webhook с правильным payload.</div>
+      <button class="btn-copy" onclick="copyBlock('promptAuto4', this)">📋 Скопировать промпт</button>
+    </div>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Автоматизация 5: Еженедельный отчёт в Gmail</div>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Что делает:</strong> каждую пятницу в 18:00 n8n берёт данные из Google Sheets, делает сводку и отправляет её в Gmail.</p>
+    </div>
+
+    <div class="prompt-block">
+      <div class="prompt-block__title">📋 Промпт: еженедельный отчёт</div>
+      <div class="prompt-block__text" id="promptAuto5">Создай workflow "Weekly Report".
+
+Логика:
+1. Триггер: каждую пятницу в 18:00 МСК.
+2. Прочитать строки из Google Sheets "Финансы 2026"
+   за последние 7 дней (фильтр по дате).
+3. Посчитать сумму поступлений и количество платежей.
+4. Составить HTML-письмо:
+   "Неделя <номер>: <сумма> ₽, <количество> платежей"
+   + таблица с платежами.
+5. Отправить на мой Gmail с темой
+   "📊 Еженедельный отчёт, <дата>".</div>
+      <button class="btn-copy" onclick="copyBlock('promptAuto5', this)">📋 Скопировать промпт</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     09 — CRON JOBS В OPENCLAW
+═══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <div class="section__num">09</div>
+    <div class="section__title">Cron Jobs в OpenClaw</div>
+  </div>
+  <div class="section__card">
+    <div class="note note--info">
+      <span class="note__icon">⏰</span>
+      <span>Cron Jobs внутри OpenClaw — это когда агент сам себе ставит задачи по расписанию, без внешних инструментов. Для простых агентских действий это проще и быстрее, чем делать отдельный workflow в n8n.</span>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Чем Cron в OpenClaw отличается от n8n:</strong></p>
+    </div>
+
+    <table class="data-table">
+      <tr><th>Параметр</th><th>Cron в OpenClaw</th><th>Workflow в n8n</th></tr>
+      <tr><td>Шагов</td><td>1–3 действия</td><td>Сложные цепочки</td></tr>
+      <tr><td>Где живёт</td><td>В конфиге агента</td><td>Отдельный сервис</td></tr>
+      <tr><td>Настройка</td><td>Через промпт Claude Code</td><td>Через UI n8n</td></tr>
+      <tr><td>Подходит для</td><td>«Напомни», «Проверь», «Напиши»</td><td>Многосервисные процессы</td></tr>
+      <tr><td>Сервисы</td><td>Всё, что агент умеет</td><td>Всё, к чему подключён n8n</td></tr>
+    </table>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Часть 1: Посмотреть, что есть сейчас</div>
+    </div>
+
+    <div class="item" data-key="cron-show">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Сказать Claude Code показать существующие Cron Jobs</div>
+      </div>
+    </div>
+
+    <div class="prompt-block">
+      <div class="prompt-block__title">📋 Промпт: показать Cron Jobs</div>
+      <div class="prompt-block__text" id="promptCronShow">Покажи мне все существующие Cron Jobs у моего главного OpenClaw-агента.
+Где они хранятся, какой синтаксис, какие сейчас активны.
+Если их нет — это нормально, просто подтверди.</div>
+      <button class="btn-copy" onclick="copyBlock('promptCronShow', this)">📋 Скопировать промпт</button>
+    </div>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Часть 2: Базовый синтаксис Cron</div>
+    </div>
+
+    <div class="arch-box">*    *    *    *    *
+│    │    │    │    │
+│    │    │    │    └── день недели (0-7, 0 и 7 = воскресенье)
+│    │    │    └─────── месяц (1-12)
+│    │    └──────────── день месяца (1-31)
+│    └───────────────── час (0-23)
+└────────────────────── минута (0-59)</div>
+
+    <div class="info-block">
+      <p><strong>Примеры:</strong></p>
+      <p>— <span class="mono">0 9 * * *</span> — каждый день в 9:00<br>— <span class="mono">30 8 * * 1-5</span> — каждый будний день в 8:30<br>— <span class="mono">0 18 * * 5</span> — каждую пятницу в 18:00<br>— <span class="mono">0 10 1 * *</span> — 1-го числа каждого месяца в 10:00<br>— <span class="mono">*/30 * * * *</span> — каждые 30 минут<br>— <span class="mono">0 */2 * * *</span> — каждые 2 часа (в 00:00, 02:00, 04:00...)</p>
+    </div>
+
+    <div class="note note--warn">
+      <span class="note__icon">⚠️</span>
+      <span><strong>Важно:</strong> Cron по умолчанию работает по таймзоне сервера (чаще UTC). Убедитесь, что агент знает ваш часовой пояс. В Cron OpenClaw обычно можно указать TZ в самом правиле.</span>
+    </div>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Часть 3: Создаём первый Cron Job</div>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Задача:</strong> каждое утро в 9:00 агент пишет в Telegram «Доброе утро, Стас! Вот что сегодня: &lt;список встреч&gt;».</p>
+    </div>
+
+    <div class="item" data-key="cron-create-morning">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Отправить промпт Claude Code</div>
+      </div>
+    </div>
+
+    <div class="prompt-block">
+      <div class="prompt-block__title">📋 Промпт: утренний cron</div>
+      <div class="prompt-block__text" id="promptCronMorning">Добавь моему главному OpenClaw-агенту Cron Job:
+• Расписание: каждый день в 09:00 по Москве (Europe/Moscow)
+• Действие:
+  1. Получить события моего Google Calendar на сегодня
+  2. Сформировать тёплое приветствие:
+     "Доброе утро, <моё имя из user.md>!
+     Вот что у тебя сегодня: ..."
+  3. Если встреч нет — написать "День свободен, используй его мудро 🧘"
+  4. Отправить сообщение в Telegram в мой личный чат с ботом
+• Имя: "Morning Greeting"
+
+Обязательно убедись, что в синтаксисе расписания указан
+пояс Europe/Moscow, не UTC.</div>
+      <button class="btn-copy" onclick="copyBlock('promptCronMorning', this)">📋 Скопировать промпт</button>
+    </div>
+
+    <div class="item" data-key="cron-test-morning">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Протестировать принудительным запуском</div>
+      </div>
+    </div>
+
+    <div class="prompt-block">
+      <div class="prompt-block__title">📋 Промпт: принудительный запуск</div>
+      <div class="prompt-block__text" id="promptCronRun">Запусти сейчас (вручную) Cron Job "Morning Greeting",
+чтобы я мог проверить, что всё работает,
+не дожидаясь 9:00.</div>
+      <button class="btn-copy" onclick="copyBlock('promptCronRun', this)">📋 Скопировать промпт</button>
+    </div>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Часть 4: Полезные идеи Cron Jobs</div>
+    </div>
+
+    <div class="info-block">
+      <p>Выбирайте 2–3 самые полезные для вас:</p>
+      <p><strong>1. Напоминание обновить OAuth-токен (если вы на Пути Б)</strong> — <span class="mono">0 10 * * 1</span> — каждый понедельник в 10:00 → Telegram «⚠️ Пора обновить OAuth-токен в n8n и OpenClaw».</p>
+      <p><strong>2. Пятничная сводка недели</strong> — <span class="mono">0 18 * * 5</span> — каждую пятницу в 18:00 → читать Google Sheets, считать метрики, отправлять в Telegram.</p>
+      <p><strong>3. Ежемесячная сводка финансов</strong> — <span class="mono">0 10 1 * *</span> — 1-го числа каждого месяца в 10:00 → сумма поступлений за прошлый месяц в Telegram + запись в «Отчёты» в Drive.</p>
+      <p><strong>4. Проверка непрочитанных писем</strong> — <span class="mono">0 */3 9-18 * * 1-5</span> — каждые 3 часа в рабочее время, по будням → если непрочитанных больше 10 — напомнить разобрать.</p>
+      <p><strong>5. Вечерний ретро</strong> — <span class="mono">0 21 * * *</span> — каждый день в 21:00 → «Как прошёл день? Давай коротко подведём итоги» — бот спрашивает, записывает ответ в Drive.</p>
+    </div>
+
+    <div class="note note--warn">
+      <span class="note__icon">💡</span>
+      <span><strong>Правило «двух недель»:</strong> Cron Job, которым вы не пользуетесь 2 недели — удаляйте. Иначе агент захламляется и начинает действовать там, где не нужно.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     10 — ГОТОВЫЙ СЦЕНАРИЙ
+═══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <div class="section__num">10</div>
+    <div class="section__title">Готовый сценарий: встреча → напоминание → финансы</div>
+  </div>
+  <div class="section__card">
+    <div class="note note--info">
+      <span class="note__icon">🎯</span>
+      <span>Эталонный кейс — онлайн-биткоин-школа Стаса. Показывает, как n8n и Cron Jobs OpenClaw работают вместе в связке.</span>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Бизнес-процесс:</strong></p>
+      <p>1. Ученик записывается на индивидуальную консультацию — преподаватель создаёт событие в Google Calendar<br>2. <strong>За 24 часа</strong> до консультации — ученику уходит в Telegram напоминание: «Привет! Напоминаю, завтра в XX:XX у нас консультация. Готов?»<br>3. <strong>За 1 час</strong> до консультации — и ученику, и преподавателю приходит напоминание в Telegram<br>4. <strong>После консультации</strong> (через 15 минут после end_time) — преподавателю приходит сообщение: «Консультация &lt;имя&gt; закончилась. Сумма платежа?»<br>5. Преподаватель отвечает голосом или текстом: «50 000 от Васи Иванова за месячный курс»<br>6. OpenClaw распознаёт → зовёт webhook n8n → n8n записывает строку в Google Sheets «Финансы 2026», лист «Консультации»<br>7. <strong>Каждую пятницу в 18:00</strong> — Cron Job в OpenClaw считает поступления за неделю и пишет сводку в Telegram</p>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Архитектура — где что живёт:</strong></p>
+    </div>
+
+    <table class="data-table">
+      <tr><th>Шаг</th><th>Инструмент</th><th>Почему</th></tr>
+      <tr><td>1. Создание события</td><td>Ручное в Calendar</td><td>Автоматизация не нужна</td></tr>
+      <tr><td>2–3. Напоминания за 24 ч и 1 ч</td><td>n8n</td><td>Триггеры на события календаря</td></tr>
+      <tr><td>4. «Сумма платежа?» через 15 мин</td><td>n8n (Wait-нода)</td><td>Точная привязка ко времени события</td></tr>
+      <tr><td>5. Распознавание голоса и парсинг</td><td>OpenClaw</td><td>Это сильная сторона агента</td></tr>
+      <tr><td>6. Запись в Sheets</td><td>n8n (webhook от OC)</td><td>Удобнее описать маппинг в n8n</td></tr>
+      <tr><td>7. Пятничная сводка</td><td>Cron Job в OpenClaw</td><td>Простая агентская задача</td></tr>
+    </table>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Чек-лист сборки сценария</div>
+    </div>
+
+    <div class="item" data-key="scen-sheets">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Подготовка: создать таблицу финансов</div>
+        <div class="item__hint">Google Sheets → новый файл <span class="mono">Финансы 2026</span>. Лист <span class="mono">Консультации</span> с колонками: Дата, Время, Ученик, Тема, Сумма, Статус.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="scen-reminders">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Часть 1. Создать напоминания в n8n</div>
+      </div>
+    </div>
+
+    <div class="prompt-block">
+      <div class="prompt-block__title">📋 Промпт: напоминания 24h и 1h</div>
+      <div class="prompt-block__text" id="promptScen1">Создай в n8n workflow "Lesson Reminders".
+Триггер: Google Calendar → Event Created в календаре "Консультации"
+(создам такой отдельный календарь для уроков).
+
+Для каждого нового события:
+1. Распарсить описание события — там буду писать Telegram-ник ученика
+   в формате @username
+2. Запланировать два напоминания:
+   • За 24 часа до start_time:
+     "Привет, <имя>! Напоминаю, завтра в <время>
+      у нас консультация. Готов? Жми 👍"
+   • За 1 час до start_time:
+     "До встречи 1 час! Включи, пожалуйста,
+      камеру и тест звука заранее."
+3. Через 15 минут после end_time:
+   сообщение МНЕ (не ученику) в Telegram:
+   "Консультация <имя> закончилась. Сумма платежа?"
+
+Используй Wait-ноды для точного таймирования.
+Активируй workflow.</div>
+      <button class="btn-copy" onclick="copyBlock('promptScen1', this)">📋 Скопировать промпт</button>
+    </div>
+
+    <div class="item" data-key="scen-webhook">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Часть 2. Webhook для записи платежа</div>
+      </div>
+    </div>
+
+    <div class="prompt-block">
+      <div class="prompt-block__title">📋 Промпт: webhook записи платежа</div>
+      <div class="prompt-block__text" id="promptScen2">Создай в n8n workflow "Log Lesson Payment".
+Триггер: webhook POST.
+
+Ожидает JSON:
+{
+  "amount": "50000",
+  "student": "Вася Иванов",
+  "topic": "Месячный курс"
+}
+
+Действия:
+1. Добавить строку в Google Sheets "Финансы 2026"
+   лист "Консультации":
+   • Дата: сегодня
+   • Время: сейчас
+   • Ученик: student
+   • Тема: topic
+   • Сумма: amount
+   • Статус: "Оплачено"
+2. Вернуть ответ {"status": "ok", "row_number": &lt;N&gt;}.
+
+Активируй. Выдай мне production URL webhook.</div>
+      <button class="btn-copy" onclick="copyBlock('promptScen2', this)">📋 Скопировать промпт</button>
+    </div>
+
+    <div class="item" data-key="scen-oc-webhook">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Часть 3. Настроить OpenClaw на вызов webhook</div>
+      </div>
+    </div>
+
+    <div class="prompt-block">
+      <div class="prompt-block__title">📋 Промпт: научить агента записывать платежи</div>
+      <div class="prompt-block__text" id="promptScen3">У меня есть n8n webhook:
+https://n8n.<ВАШ_ДОМЕН_2>/webhook/log-payment
+
+Сохрани это в user.md или heartbeats как инструмент
+"log-lesson-payment".
+
+Правило:
+Когда я пишу/говорю что-то вида
+"запиши платёж <сумма> от <имя> за <тема>"
+или вариации (голосом могу сказать коряво) —
+ты:
+1. Извлекаешь сумму, имя, тему
+2. Делаешь POST-запрос на этот webhook
+   с JSON {"amount", "student", "topic"}
+3. Если вернулся status ok — отвечаешь в Telegram
+   "✅ Записал: <имя>, <сумма>, <тема>"
+4. Если ошибка — показываешь её мне</div>
+      <button class="btn-copy" onclick="copyBlock('promptScen3', this)">📋 Скопировать промпт</button>
+    </div>
+
+    <div class="item" data-key="scen-friday">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Часть 4. Пятничная сводка через Cron Job</div>
+      </div>
+    </div>
+
+    <div class="prompt-block">
+      <div class="prompt-block__title">📋 Промпт: пятничный финансовый отчёт</div>
+      <div class="prompt-block__text" id="promptScen4">Добавь моему агенту Cron Job:
+• Имя: "Weekly Finance Summary"
+• Расписание: каждую пятницу в 18:00 Europe/Moscow
+• Действие:
+  1. Прочитать лист "Консультации" в Google Sheets "Финансы 2026"
+  2. Отфильтровать строки за последние 7 дней
+  3. Посчитать:
+     • сумму поступлений
+     • количество консультаций
+     • среднюю сумму
+  4. Сформировать сообщение:
+     "💰 Неделя &lt;N&gt;:
+      • Консультаций: <количество>
+      • Поступления: <сумма> ₽
+      • Средний чек: <среднее> ₽
+      • Топ ученик недели: <имя>"
+  5. Отправить в Telegram</div>
+      <button class="btn-copy" onclick="copyBlock('promptScen4', this)">📋 Скопировать промпт</button>
+    </div>
+
+    <div class="item" data-key="scen-test">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Часть 5. Тест полного цикла</div>
+        <div class="item__hint">— Создать в календаре «Консультации» тестовое событие через 5 минут (5 минут длительность)<br>— Проверить: пришло ли напоминание<br>— Дождаться окончания события<br>— Через ~15 мин получить вопрос от бота «Сумма платежа?»<br>— Ответить: «10 000 от Тест Тестова за тест»<br>— Проверить Google Sheets → строка появилась<br>— (Опционально) запустить Cron Job вручную: «запусти Weekly Finance Summary сейчас»</div>
+      </div>
+    </div>
+
+    <div class="note note--green">
+      <span class="note__icon">🎉</span>
+      <span>Если весь цикл отработал — у вас собран <strong>полноценный производственный сценарий</strong>. Дальше вы адаптируете его под любой бизнес.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     11 — БОНУС: AI-ОФИС АВТОРА КУРСА
+═══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <div class="section__num">11</div>
+    <div class="section__title">Бонус: AI-офис автора курса</div>
+  </div>
+  <div class="section__card">
+    <div class="note note--info">
+      <span class="note__icon">🎁</span>
+      <span>Это не ещё один учебный workflow. Это <strong>полная боевая архитектура</strong> личного AI-офиса автора курса — 6 связанных workflow, которые работают в продакшене и ежедневно экономят часы. Можете импортировать их себе, адаптировать под свой бизнес и запустить за вечер.</span>
+    </div>
+
+    <div class="arch-box">                  Telegram-бот (вы)
+                        ↓
+              ┌─────────────────────┐
+              │        MAIN         │
+              │   (оркестратор)     │
+              │  БИЗНЕС-АССИСТЕНТ   │
+              └──────────┬──────────┘
+                         ↓
+      ┌──────────┬───────┼───────┬──────────────┐
+      ↓          ↓       ↓       ↓              ↓
+  ┌───────┐ ┌────────┐ ┌─────┐ ┌────────┐ ┌──────────┐
+  │CALEND.│ │CONTACTS│ │EMAIL│ │FINANCE │ │ FINANCE  │
+  │       │ │        │ │     │ │ LOGGER │ │ ANALYST  │
+  └───────┘ └────────┘ └─────┘ └────────┘ └──────────┘</div>
+
+    <div class="info-block">
+      <p><strong>Как это устроено:</strong> MAIN — главный оркестратор. Принимает голос и текст из Telegram, понимает намерение и вызывает один из 5 специализированных workflow. Каждый специализированный workflow имеет свой системный промпт и свои инструменты — это и есть «AI-сотрудники», только в виде n8n-воркфлоу.</p>
+    </div>
+
+    <div class="res-block">
+      <div class="res-block__title">🎯 MAIN — главный оркестратор</div>
+      <div class="res-block__sub">Принимает входящие сообщения из Telegram (текст и голос через Whisper), проверяет авторизацию, понимает намерение пользователя и роутит запрос в нужный специализированный workflow. Содержит проверку <span class="mono">chat_id</span> — отвечает только вам, а не любому, кто напишет боту.<br>
+        <a href="https://drive.google.com/file/d/1Vyp-0K3cpk8w8ypmffEQ_7ak_h3FTbPy/view?usp=drive_link" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> 📥 Скачать JSON</a></div>
+    </div>
+
+    <div class="res-block">
+      <div class="res-block__title">📅 CALENDAR — работа с Google Calendar</div>
+      <div class="res-block__sub">AI-агент для календаря. Умеет создавать события (в том числе с участниками), получать список событий на любую дату, обновлять и удалять события. По умолчанию — московское время, час продолжительности если не указано иное.<br>
+        <a href="https://drive.google.com/file/d/1kv3-wZOQzp5xZqdVGVRNLxONnzkIoD86/view?usp=drive_link" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> 📥 Скачать JSON</a></div>
+    </div>
+
+    <div class="res-block">
+      <div class="res-block__title">📇 CONTACTS — адресная книга</div>
+      <div class="res-block__sub">Управление базой контактов в Google Sheets. Две операции: добавить контакт (AI парсит сообщение, извлекает имя, Telegram, email, телефон, дату рождения, сферу деятельности — записывает в таблицу) и найти контакт по email.<br>
+        <a href="https://drive.google.com/file/d/1dZXUFNwvN-t2T0kt6lfbenzh4wpUNssN/view?usp=drive_link" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> 📥 Скачать JSON</a></div>
+    </div>
+
+    <div class="res-block">
+      <div class="res-block__title">✉️ EMAIL — работа с Gmail</div>
+      <div class="res-block__sub">AI-агент для почты. Отправка писем, создание черновиков, ответы на существующие письма, чтение входящих, работа с лейблами, пометка «непрочитанное». Все письма в HTML и с подписью автора.<br>
+        <a href="https://drive.google.com/file/d/1EDyyUPhFPblwTfyIYt0E_TUiCHFU2qcY/view?usp=drive_link" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> 📥 Скачать JSON</a></div>
+    </div>
+
+    <div class="res-block">
+      <div class="res-block__title">💸 FINANCE LOGGER — запись доходов и расходов</div>
+      <div class="res-block__sub">Говорите боту «потратил 50 GEL на продукты» или «получил 2000 USD зарплаты» — AI извлекает сумму, валюту, категорию, дату, комментарий; конвертирует в USD через exchangerate-api; пишет строку в Google Sheets. Есть команды «отмени»/«удали» — откатывает последнюю запись.<br>
+        <a href="https://drive.google.com/file/d/1FcFZnFkExKzmbCnJrgcWl3bFCwfMtMbk/view?usp=drive_link" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> 📥 Скачать JSON</a></div>
+    </div>
+
+    <div class="res-block">
+      <div class="res-block__title">📊 FINANCE ANALYST — анализ личных финансов</div>
+      <div class="res-block__sub">AI-агент для финансовой аналитики. Понимает вопросы типа «сколько я потратил на еду в марте», «средний расход в день за последний месяц», «топ-5 категорий трат». Читает данные из Google Sheets, агрегирует по 14 типам операций (сумма, среднее, мин/макс, по дням, по месяцам, сравнение периодов), отвечает по-русски.<br>
+        <a href="https://drive.google.com/file/d/1D4wb_X5xRWvHIL2TbzMd3bea9SWXrpH3/view?usp=drive_link" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> 📥 Скачать JSON</a></div>
+    </div>
+
+    <details class="spoiler">
+      <summary>📦 Как импортировать workflow в свой n8n (5 шагов)</summary>
+      <div class="spoiler__content">
+        <p><strong>1. Скачайте нужный JSON-файл</strong> с Google Drive по ссылке выше.</p>
+        <p><strong>2. Откройте свой n8n</strong> → Workflows → кнопка <strong>⋯</strong> в правом верхнем углу → <strong>Import from File</strong>.</p>
+        <p><strong>3. Выберите скачанный JSON</strong> — n8n откроет workflow в редакторе.</p>
+        <p><strong>4. Подставьте свои значения вместо плейсхолдеров:</strong></p>
+        <p>— <span class="mono">&lt;ВАШ_EMAIL&gt;</span>, <span class="mono">&lt;ВАШЕ_ИМЯ&gt;</span>, <span class="mono">&lt;ВАШ_TELEGRAM_USER_ID&gt;</span> — личные данные<br>
+        — <span class="mono">&lt;OPENAI_CREDENTIAL_ID&gt;</span>, <span class="mono">&lt;GOOGLE_SHEETS_CREDENTIAL_ID&gt;</span>, <span class="mono">&lt;GOOGLE_CALENDAR_CREDENTIAL_ID&gt;</span>, <span class="mono">&lt;GMAIL_CREDENTIAL_ID&gt;</span>, <span class="mono">&lt;TELEGRAM_CREDENTIAL_ID&gt;</span>, <span class="mono">&lt;SERPAPI_CREDENTIAL_ID&gt;</span> — в каждой ноде выбрать свой credential из выпадающего списка (создаются через Settings → Credentials)<br>
+        — <span class="mono">&lt;FINANCE_SHEET_ID&gt;</span>, <span class="mono">&lt;CONTACTS_SHEET_ID&gt;</span> — ID ваших Google Sheets таблиц (берётся из URL таблицы: <span class="mono">docs.google.com/spreadsheets/d/&lt;ТУТ_ID&gt;/edit</span>)<br>
+        — <span class="mono">&lt;EMAIL_WORKFLOW_ID&gt;</span>, <span class="mono">&lt;CONTACTS_WORKFLOW_ID&gt;</span>, <span class="mono">&lt;CALENDAR_WORKFLOW_ID&gt;</span>, <span class="mono">&lt;FINANCEANALYST_WORKFLOW_ID&gt;</span>, <span class="mono">&lt;FINANCELOGGER_WORKFLOW_ID&gt;</span> — <strong>только в MAIN</strong> — это ссылки на другие ваши workflow, их ID возьмёте после импорта остальных пяти<br>
+        — <span class="mono">&lt;EXCHANGERATE_API_KEY&gt;</span> — <strong>только в FINANCE LOGGER</strong> — получите бесплатный ключ на <a href="https://www.exchangerate-api.com" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> exchangerate-api.com</a>, бесплатный тариф полностью хватает</p>
+        <p style="margin-top:10px"><strong>Что за &lt;OPENAI_CREDENTIAL_ID&gt; и зачем он нужен:</strong> OpenAI здесь — это «мозг» AI-агентов внутри workflow: языковая модель, которая понимает ваши сообщения, извлекает суммы, имена и категории, формулирует ответы. Чтобы эти workflow заработали, нужен ваш API-ключ OpenAI — создаётся в <a href="https://platform.openai.com/api-keys" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> platform.openai.com</a>, а затем в n8n добавляется как OpenAI credential через Settings → Credentials. Если предпочитаете другого провайдера — можно подключить свой ключ через OpenRouter, логика workflow при этом не меняется.</p>
+        <p><strong>5. Активируйте workflow</strong> переключателем в правом верхнем углу.</p>
+      </div>
+    </details>
+
+    <div class="note note--warn">
+      <span class="note__icon">⚠️</span>
+      <span>Импортируйте в таком порядке: <strong>сначала</strong> CALENDAR, CONTACTS, EMAIL, FINANCE LOGGER, FINANCE ANALYST — они независимы. <strong>Последним</strong> — MAIN: в нём нужно прописать workflow ID предыдущих пяти (возьмёте их из URL каждого импортированного workflow вида <span class="mono">/workflow/&lt;ID&gt;</span>).</span>
+    </div>
+
+    <div class="note note--info">
+      <span class="note__icon">📊</span>
+      <span><strong>Перед импортом FINANCE LOGGER и FINANCE ANALYST</strong> — нужна таблица финансов с правильной структурой колонок. Используйте готовый шаблон автора курса:<br><br>→ <a href="https://docs.google.com/spreadsheets/d/10XgeKXxo0_FrMcq7j_H4hDI7oH6tpXJbGKx7CO-ga4g/copy" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> Скопировать шаблон «Финансы в USD» в свой Google Drive</a><br><br>По клику Google сразу откроет диалог <strong>«Сделать копию»</strong> — нажимаете <strong>Создать копию</strong>, таблица появляется в вашем Drive со всеми нужными колонками (ID, ДАТА, ТИП ОПЕРАЦИИ, КАТЕГОРИЯ, SUM USD, RAW SUM, COMMENT) и листом <span class="mono">PNL</span>.<br><br>После создания копии откройте её и скопируйте ID таблицы из URL — это то значение, что подставляется в плейсхолдер <span class="mono">&lt;FINANCE_SHEET_ID&gt;</span> в workflow.<br><br><strong>Для CONTACTS</strong> — создайте отдельную таблицу «Контакты» вручную с листом <span class="mono">CONTACTS</span> и колонками: ИМЯ, ФАМИЛИЯ, TELEGRAM USERNAME, EMAIL, ТЕЛЕФОН, ДАТА РОЖДЕНИЯ, СФЕРА ДЕЯТЕЛЬНОСТИ. ID этой таблицы → в плейсхолдер <span class="mono">&lt;CONTACTS_SHEET_ID&gt;</span>.</span>
+    </div>
+
+    <div class="note note--green">
+      <span class="note__icon">🚀</span>
+      <span>Когда все 6 workflow импортированы и MAIN связан с остальными — пишите боту в Telegram что угодно. MAIN сам решит, куда роутить, и <strong>AI-офис заработает</strong>.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     12 — ПРАКТИКА
+═══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <div class="section__num">12</div>
+    <div class="section__title">Практика: свой сценарий под свой бизнес</div>
+  </div>
+  <div class="section__card">
+    <div class="note note--info">
+      <span class="note__icon">🚀</span>
+      <span>Теоретическая часть закончена. Ваша задача — применить всё, что вы собрали, к своему бизнесу. Это задание обсуждаем на онлайн-встрече 5.</span>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Задание:</strong></p>
+    </div>
+
+    <div class="item" data-key="prac-niche">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Выбрать нишу из банка идей ниже (или свою)</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="prac-describe">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Описать сценарий простым текстом в заметках</div>
+        <div class="item__hint">Шаг за шагом, что должно происходить.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="prac-split">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Разметить — что делает n8n, что делает Cron Job в OpenClaw</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="prac-build">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Собрать сценарий вайб-кодингом через Claude Code и Telegram-бот</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="prac-test">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Протестировать полный цикл</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="prac-bring">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Принести рабочий сценарий на онлайн-встречу 5 для разбора</div>
+      </div>
+    </div>
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">💡 Банк из 10 идей для разных ниш</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">1. Онлайн-школа (например, биткоин-школа)</div>
+      <div class="term__def">— Учёт записей на консультации через Google Calendar<br>— Напоминания за 24 ч / 1 ч / после<br>— Запись платежей в Sheets по голосовой команде<br>— Еженедельный финансовый отчёт</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">2. Эксперт / коуч / консультант</div>
+      <div class="term__def">— После сессии — автоматический follow-up клиенту через 24 ч («Как прошло? Какие инсайты?»)<br>— Ведение клиентской базы в Sheets с тегами «холодный / тёплый / активный»<br>— Напоминания о повторных сессиях через 2–4 недели после последней</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">3. Маркетинговое / SMM-агентство</div>
+      <div class="term__def">— Еженедельный сбор метрик из клиентских таблиц<br>— Автоматическое формирование отчётов в Drive<br>— Напоминания о дедлайнах проектов<br>— Уведомления при критичных показателях (CTR упал, CPL вырос)</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">4. B2B-продажник / sales-менеджер</div>
+      <div class="term__def">— Утренний дайджест в 9:00: встречи дня + данные клиентов из CRM (Sheets)<br>— Напоминание за 15 минут до звонка + ссылка на предыдущие заметки<br>— Follow-up через 2 дня после встречи автоматически в Gmail<br>— Еженедельный отчёт по воронке</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">5. Юрист / юрконсультант</div>
+      <div class="term__def">— Новое обращение клиента → автосоздание папки дела в Drive по шаблону<br>— Запись клиента в реестр Sheets<br>— Напоминания о дедлайнах по делам<br>— Еженедельный обзор активных дел</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">6. Фрилансер (дизайнер, копирайтер, разработчик)</div>
+      <div class="term__def">— Учёт часов по проектам через голосовую команду («я поработал над проектом X — 2 часа»)<br>— Автогенерация инвойсов в конце месяца<br>— Напоминания клиентам об оплате неоплаченных счетов через Gmail<br>— Дневной лог продуктивности в Drive</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">7. Онлайн-магазин / e-commerce</div>
+      <div class="term__def">— Ежедневная сводка заказов в Telegram в 10:00<br>— Напоминания клиентам о брошенной корзине через Gmail<br>— Еженедельный отчёт продаж → Google Sheets → сводка в Telegram<br>— Мониторинг остатков через Sheets и уведомления о низких остатках</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">8. Психолог / терапевт / нутрициолог</div>
+      <div class="term__def">— Напоминание клиенту за 24 ч до сессии<br>— После сессии — запись приватных заметок (голосом) в защищённую папку Drive<br>— Ведение «журнала клиента» в Sheets с датами и темами<br>— Месячный отчёт загрузки / свободных окон</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">9. Блогер / контент-мейкер / продюсер</div>
+      <div class="term__def">— Контент-план в Calendar + напоминания о публикациях<br>— Архивирование всех опубликованных постов в Drive<br>— Еженедельная сводка метрик в Telegram<br>— Автоматический запрос «идеи контента на следующую неделю» по пятницам</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">10. Локальный бизнес (ресторан / салон / студия)</div>
+      <div class="term__def">— Ежедневная сводка выручки в Sheets (владелец заносит голосом → агент обрабатывает)<br>— Еженедельный отчёт директору по Gmail<br>— Напоминания о закупках на основе графика<br>— Автоматическое поздравление постоянных клиентов с днём рождения</div>
+    </div>
+    <div class="note note--green">
+      <span class="note__icon">💡</span>
+      <span><strong>На будущее:</strong><br>• Начните с одного сценария, который реально экономит вам время, а не пытайтесь собрать сразу все десять.<br>• Раз в неделю заглядывайте в раздел Executions, чтобы ловить сбои автоматизаций пока их немного.<br>• Прежде чем усложнять сценарий, прогоните его на тестовых данных, так вы не сломаете рабочий процесс.</span>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══ FOOTER ═══ -->
+<div class="footer">
+  <div class="footer__done" id="doneBlock">
+    <div class="footer__done-emoji">🚀</div>
+    <div class="footer__done-text">Автоматизации работают!</div>
+    <div class="footer__done-sub">n8n + OpenClaw + Google в связке. До встречи 5!</div>
+  </div>
+  <div class="footer__final-part3">
+    <div class="footer__final-emoji">⚡</div>
+    <div class="footer__final-text">Урок 5 пройден!</div>
+    <div class="footer__final-sub">Свой n8n на отдельном домене с двумя слоями защиты. Google (Calendar, Drive, Sheets, Gmail) подключён и к n8n, и к OpenClaw. Собрана минимум одна рабочая автоматизация, а Cron Jobs выполняют задачи по расписанию сами.</div>
+  </div>
+  <div class="footer__contact">Возникли вопросы? Напишите <a href="https://t.me/stavzzz" target="_blank" class="tg">@stavzzz</a> в&nbsp;Telegram</div>
+  <button class="btn-reset" onclick="resetProgress()">Сбросить прогресс</button>
+</div>
+
+</div><!-- /wrapper -->
+
+<script>
+const C=document.getElementById('confetti-canvas'),ctx=C.getContext('2d');
+let particles=[],confettiActive=false;
+function resizeCanvas(){C.width=window.innerWidth;C.height=window.innerHeight;}
+window.addEventListener('resize',resizeCanvas);resizeCanvas();
+const COLORS=['#7c5bf5','#9d7cff','#34d399','#6ee7b7','#fbbf24','#f87171','#fb7185','#38bdf8','#facc15','#a78bfa','#f472b6','#4ade80'];
+function rand(a,b){return Math.random()*(b-a)+a;}
+function createBurst(x,y,count){for(let i=0;i<count;i++){const angle=rand(0,Math.PI*2),speed=rand(4,14),size=rand(4,10);particles.push({x,y,vx:Math.cos(angle)*speed+rand(-2,2),vy:Math.sin(angle)*speed*-0.8-rand(2,6),size,color:COLORS[Math.floor(Math.random()*COLORS.length)],rotation:rand(0,Math.PI*2),rotSpeed:rand(-0.2,0.2),gravity:rand(0.12,0.25),friction:rand(0.97,0.995),opacity:1,fadeSpeed:rand(0.005,0.015),shape:Math.random()>0.4?'rect':'circle'});}}
+function launchConfetti(){if(confettiActive)return;confettiActive=true;particles=[];const W=C.width,H=C.height;[[W*.5,H*.3,120],[W*.15,H*.2,80],[W*.85,H*.2,80],[W*.5,H*.1,100],[W*.3,H*.5,60],[W*.7,H*.5,60],[0,H*.6,50],[W,H*.6,50],[W*.5,H*.6,80]].forEach(([x,y,c],i)=>{setTimeout(()=>createBurst(x,y,c),i*150)});setTimeout(()=>{createBurst(W*.2,H*.15,90);createBurst(W*.8,H*.15,90);createBurst(W*.5,H*.05,100)},1500);setTimeout(()=>{createBurst(W*.5,H*.25,120);createBurst(W*.1,H*.4,60);createBurst(W*.9,H*.4,60)},2500);animate();setTimeout(()=>{confettiActive=false},8000);}
+function animate(){ctx.clearRect(0,0,C.width,C.height);for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.vx*=p.friction;p.vy*=p.friction;p.vy+=p.gravity;p.x+=p.vx;p.y+=p.vy;p.rotation+=p.rotSpeed;p.opacity-=p.fadeSpeed;if(p.opacity<=0){particles.splice(i,1);continue}ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rotation);ctx.globalAlpha=p.opacity;ctx.fillStyle=p.color;if(p.shape==='rect'){ctx.fillRect(-p.size/2,-p.size/4,p.size,p.size/2)}else{ctx.beginPath();ctx.arc(0,0,p.size/2,0,Math.PI*2);ctx.fill()}ctx.restore();}if(particles.length>0||confettiActive){requestAnimationFrame(animate)}else{ctx.clearRect(0,0,C.width,C.height);}}
+const STORAGE_KEY='iivizaciya_checklist_urok5_v1';
+const items=document.querySelectorAll('.item[data-key]');
+const totalCount=items.length;
+let wasComplete=false;
+function loadState(){try{const s=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');let c=0;items.forEach(item=>{const cb=item.querySelector('input[type="checkbox"]');if(s[item.dataset.key]){cb.checked=true;item.classList.add('checked');c++}});wasComplete=c===totalCount}catch(e){}updateProgress(false);}
+function saveState(){const s={};items.forEach(item=>{s[item.dataset.key]=item.querySelector('input[type="checkbox"]').checked});try{localStorage.setItem(STORAGE_KEY,JSON.stringify(s))}catch(e){}}
+function updateProgress(canCelebrate=true){let c=0;items.forEach(item=>{if(item.querySelector('input[type="checkbox"]').checked)c++});document.getElementById('progressCount').textContent=`${c} / ${totalCount}`;document.getElementById('progressFill').style.width=(totalCount>0?(c/totalCount)*100:0)+'%';const done=document.getElementById('doneBlock');if(c===totalCount){done.classList.add('visible');if(canCelebrate&&!wasComplete){launchConfetti()}wasComplete=true}else{done.classList.remove('visible');wasComplete=false;}}
+items.forEach(item=>{
+  const cb=item.querySelector('input[type="checkbox"]');
+  cb.addEventListener('change',function(){item.classList.toggle('checked',this.checked);saveState();updateProgress(true);});
+});
+function resetProgress(){if(!confirm('Сбросить весь прогресс?'))return;items.forEach(item=>{const cb=item.querySelector('input[type="checkbox"]');cb.checked=false;item.classList.remove('checked')});wasComplete=false;saveState();updateProgress(false);}
+loadState();
+
+function copyBlock(id, btn){
+  const text=document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(()=>{
+    const orig=btn.innerHTML;
+    btn.classList.add('copied');
+    btn.innerHTML='✅ Скопировано!';
+    setTimeout(()=>{btn.classList.remove('copied');btn.innerHTML=orig;},2000);
+  });
+}
+</script>
+</body>
+</html>

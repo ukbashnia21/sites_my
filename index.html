@@ -1,219 +1,154 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Дыхание</title>
-<style>
-  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body { height:100%; }
-  body {
-    font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;
-    background:radial-gradient(ellipse at 50% 30%, #17202b 0%, #0c0f14 70%);
-    color:#e7e3d8; overflow:hidden;
-    display:flex; flex-direction:column; align-items:center;
-    min-height:100vh; user-select:none;
-  }
-
-  .top { width:100%; max-width:520px; padding:20px 18px 6px; text-align:center; }
-  .title { font-size:12px; letter-spacing:3px; text-transform:uppercase; color:#6f7d70; }
-
-  /* mode + duration selectors */
-  .row { display:flex; gap:7px; justify-content:center; margin-top:12px; flex-wrap:wrap; }
-  .chip {
-    font-size:12.5px; padding:7px 13px; border-radius:20px; cursor:pointer;
-    background:rgba(255,255,255,0.05); color:#b7c2b8; border:1px solid rgba(255,255,255,0.08);
-    transition:all .2s;
-  }
-  .chip.on { background:#4a5d4f; color:#f2efe6; border-color:#5f7563; }
-  .chip small { display:block; font-size:9px; color:#7f8a80; letter-spacing:.3px; margin-top:1px; }
-  .chip.on small { color:#cdd8ce; }
-  .dur .chip { padding:6px 14px; }
-
-  .note { font-size:11.5px; color:#7c8a7e; margin-top:9px; height:14px; }
-
-  /* breathing stage */
-  .stage { flex:1; width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; }
-  .halo {
-    position:absolute; width:300px; height:300px; border-radius:50%;
-    background:radial-gradient(circle, rgba(122,161,140,0.18) 0%, rgba(122,161,140,0) 68%);
-    transform:scale(.5); opacity:.6;
-  }
-  .circle {
-    width:210px; height:210px; border-radius:50%; position:relative;
-    background:radial-gradient(circle at 38% 32%, #8fb59c 0%, #4a5d4f 62%, #38473c 100%);
-    box-shadow:0 0 60px rgba(122,161,140,0.28), inset 0 0 40px rgba(0,0,0,0.25);
-    transform:scale(.5);
-    display:flex; align-items:center; justify-content:center;
-  }
-  .phase { font-size:23px; font-weight:600; color:#f4f1e8; letter-spacing:.5px; text-shadow:0 1px 8px rgba(0,0,0,.35); }
-  .count { position:absolute; bottom:-2px; font-size:13px; color:rgba(244,241,232,0.55); }
-
-  /* bottom controls */
-  .bottom { width:100%; max-width:520px; padding:0 18px 30px; text-align:center; }
-  .timer { font-size:15px; color:#8a968c; letter-spacing:1px; margin-bottom:14px; font-variant-numeric:tabular-nums; }
-  .btn {
-    width:100%; max-width:320px; margin:0 auto; padding:16px; border-radius:16px; border:none;
-    font-size:16px; font-weight:600; cursor:pointer; letter-spacing:.5px;
-    background:#c1583e; color:#fff; transition:transform .1s, background .2s;
-  }
-  .btn:active { transform:scale(.98); }
-  .btn.ghost { background:rgba(255,255,255,0.07); color:#c9d2ca; }
-  .sound { margin-top:14px; font-size:12px; color:#66716a; cursor:pointer; }
-  .sound b { color:#9fb0a1; }
-
-  /* done screen */
-  .done { display:none; flex-direction:column; align-items:center; justify-content:center; flex:1; text-align:center; padding:0 30px; }
-  .done .big { font-size:44px; font-weight:700; color:#8fb59c; }
-  .done .lbl { font-size:13px; color:#7c8a7e; letter-spacing:2px; text-transform:uppercase; margin-top:4px; }
-  .done .msg { font-size:14px; color:#c3ccc4; line-height:1.5; margin:18px 0 6px; max-width:340px; }
-  .done .whoop { font-size:12.5px; color:#7c8a7e; margin-top:10px; }
-
-  .hidden { display:none !important; }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Интерактивный атлас архитектуры AI-офиса Николая">
+  <title>AI-офис Николая — архитектурный атлас</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="assets/architecture-map.css">
 </head>
 <body>
-
-  <div class="top">
-    <div class="title">Дыхание</div>
-    <div class="row modes" id="modes"></div>
-    <div class="row dur" id="durs"></div>
-    <div class="note" id="note"></div>
-  </div>
-
-  <div class="stage" id="stage">
-    <div class="halo" id="halo"></div>
-    <div class="circle" id="circle">
-      <div class="phase" id="phase">Готов?</div>
+  <header class="masthead">
+    <div class="masthead__inner">
+      <a class="brand" href="#map" aria-label="Открыть архитектурную карту">
+        <span class="brand__mark" aria-hidden="true">AI</span>
+        <span>Архитектурный атлас</span>
+      </a>
+      <div class="masthead__meta">
+        <span class="status status--live">Рабочая система</span>
+        <span>Обновлено 21.07.2026</span>
+      </div>
     </div>
-    <div class="count" id="cyc"></div>
-  </div>
+  </header>
 
-  <div class="done" id="done">
-    <div class="big" id="doneCycles">0</div>
-    <div class="lbl">циклов</div>
-    <div class="msg" id="doneMsg"></div>
-    <div class="whoop">Отметь в WHOOP → Activity → <b>Meditation / Breathwork</b></div>
-    <button class="btn ghost" style="margin-top:22px" onclick="reset()">Ещё раз</button>
-  </div>
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">AI-офис Николая</p>
+        <h1 id="page-title">Одна система. Пять уровней контроля.</h1>
+        <p class="intro__lead">Николай работает голосом, в Telegram, Obsidian и VS Code. GitHub хранит проверенный канон, агенты действуют в своих границах, а изменения проходят через архитектора, исполнителя и независимую приёмку.</p>
+      </div>
+      <dl class="facts" aria-label="Ключевые параметры архитектуры">
+        <div><dt>Канон знаний</dt><dd>Second Brain</dd></div>
+        <div><dt>Синхронизация Mac</dt><dd>5 минут</dd></div>
+        <div><dt>Запись агентов</dt><dd>Через inbox</dd></div>
+        <div><dt>Рекомендация</dt><dd>Vault Writer</dd></div>
+      </dl>
+    </section>
 
-  <div class="bottom" id="bottom">
-    <div class="timer" id="timer">10:00</div>
-    <button class="btn" id="startBtn" onclick="toggle()">Начать</button>
-    <div class="sound" id="soundToggle" onclick="toggleSound()">Звук: <b id="soundState">вкл</b> · закрой глаза и веди по звуку</div>
-  </div>
+    <nav class="tabs" aria-label="Разделы атласа">
+      <button class="tab is-active" type="button" data-tab="map" aria-selected="true">Карта</button>
+      <button class="tab" type="button" data-tab="options" aria-selected="false">3 варианта</button>
+      <button class="tab" type="button" data-tab="rollout" aria-selected="false">План запуска</button>
+      <button class="tab" type="button" data-tab="lessons" aria-selected="false">Уроки 3–6</button>
+      <button class="tab" type="button" data-tab="rules" aria-selected="false">Правила данных</button>
+    </nav>
 
-<script>
-  const PATTERNS = {
-    resonance:{ name:'Резонанс 5.5', hint:'≈5.5 вдоха/мин · пик HRV (утро/день)',
-      phases:[['Вдох',5.5,'in'],['Выдох',5.5,'out']] },
-    vagus:{ name:'Вагус 4/6', hint:'выдох длиннее · вагус, пульс вниз (вечер/сон)',
-      phases:[['Вдох',4,'in'],['Выдох',6,'out']] },
-    p478:{ name:'4-7-8', hint:'глубже, с задержкой',
-      phases:[['Вдох',4,'in'],['Задержка',7,'hold'],['Выдох',8,'out']] }
-  };
-  const DURS = [3,5,10];
+    <section class="panel is-active" id="panel-map" data-panel="map">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Как читать карту</p>
+          <h2>Выберите рабочий сценарий</h2>
+        </div>
+        <p>Цветом подсветится только тот маршрут, по которому реально проходит задача или информация.</p>
+      </div>
 
-  let mode='resonance', durMin=10;
-  let running=false, phaseIdx=0, cycles=0, elapsed=0, phaseTimer=null, tickTimer=null, lastScale=0.5;
-  let soundOn=true, actx=null;
+      <div class="route-selector" id="route-selector" aria-label="Рабочие сценарии"></div>
 
-  const $ = id => document.getElementById(id);
-  const circle=$('circle'), halo=$('halo'), phaseEl=$('phase');
+      <div class="map-layout">
+        <div class="system-map" id="system-map" aria-label="Пять уровней архитектуры"></div>
+        <aside class="inspector" id="inspector" aria-live="polite">
+          <p class="inspector__number">Фокус</p>
+          <h2>Нажмите на любой блок</h2>
+          <p>Справа появятся назначение, входящие и исходящие данные. На схеме останутся только связанные части.</p>
+        </aside>
+      </div>
 
-  function buildChips(){
-    $('modes').innerHTML = Object.entries(PATTERNS).map(([k,p])=>
-      `<div class="chip ${k===mode?'on':''}" onclick="setMode('${k}')">${p.name}</div>`).join('');
-    $('durs').innerHTML = DURS.map(d=>
-      `<div class="chip ${d===durMin?'on':''}" onclick="setDur(${d})">${d} мин</div>`).join('');
-    $('note').textContent = PATTERNS[mode].hint;
-    $('timer').textContent = fmt(durMin*60);
-  }
-  function setMode(k){ if(running)return; mode=k; buildChips(); }
-  function setDur(d){ if(running)return; durMin=d; buildChips(); }
-  function fmt(s){ s=Math.max(0,Math.round(s)); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+      <div class="route-story" id="route-story" aria-live="polite"></div>
+    </section>
 
-  function ensureAudio(){ if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } }
-  function tone(type){
-    if(!soundOn||!actx) return;
-    const now=actx.currentTime;
-    const o=actx.createOscillator(), g=actx.createGain();
-    const freq = type==='in'?432 : type==='out'?288 : 360;
-    o.frequency.value=freq; o.type='sine';
-    o.connect(g); g.connect(actx.destination);
-    g.gain.setValueAtTime(0, now);
-    g.gain.linearRampToValueAtTime(0.12, now+0.25);
-    g.gain.linearRampToValueAtTime(0.0001, now+1.1);
-    o.start(now); o.stop(now+1.2);
-  }
+    <section class="panel" id="panel-options" data-panel="options" hidden>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Решение после аудита курса</p>
+          <h2>Три способа синхронизации</h2>
+        </div>
+        <p>Курс даёт рабочий старт. Для нескольких агентов добавляем контроль записи и review.</p>
+      </div>
+      <div class="option-grid" id="option-grid"></div>
+    </section>
 
-  function toggle(){ running?stop(true):start(); }
+    <section class="panel" id="panel-rollout" data-panel="rollout" hidden>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Без массовой миграции</p>
+          <h2>План запуска по одной проверяемой правке</h2>
+        </div>
+        <p>Каждый этап имеет отдельный результат. Следующий начинается только после проверки предыдущего.</p>
+      </div>
+      <ol class="timeline" id="timeline"></ol>
+    </section>
 
-  function start(){
-    ensureAudio();
-    if(actx&&actx.state==='suspended') actx.resume();
-    running=true; phaseIdx=0; cycles=0; elapsed=0; lastScale=0.5;
-    $('startBtn').textContent='Стоп'; $('startBtn').classList.add('ghost');
-    $('soundToggle').style.visibility='hidden';
-    document.querySelectorAll('.chip').forEach(c=>c.style.opacity=.4);
-    tickTimer=setInterval(()=>{ elapsed++; const rem=durMin*60-elapsed;
-      $('timer').textContent=fmt(rem); if(rem<=0){/* finish handled at phase end */} }, 1000);
-    runPhase();
-  }
+    <section class="panel" id="panel-lessons" data-panel="lessons" hidden>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Источник → адаптация → решение</p>
+          <h2>Уроки 3–6 как рабочая база</h2>
+        </div>
+        <p>Оригинальные HTML не меняются. Рядом хранятся точный Markdown, наши комментарии, решения и исполняемый чек-лист.</p>
+      </div>
+      <div class="lesson-grid" id="lesson-grid"></div>
+      <div class="course-flow" aria-label="Процесс работы с каждым уроком">
+        <span>HTML-источник</span><i aria-hidden="true">→</i>
+        <span>Точный Markdown</span><i aria-hidden="true">→</i>
+        <span>Критический аудит</span><i aria-hidden="true">→</i>
+        <span>Наше решение</span><i aria-hidden="true">→</i>
+        <span>Чек-лист + evidence</span>
+      </div>
+      <div class="link-row">
+        <a href="course/master-checklist.md">Полный чек-лист</a>
+        <a href="course/prompts.md">Все промпты</a>
+        <a href="course/links.md">Все ссылки</a>
+        <a href="course/execution-policy.md">Правила выполнения</a>
+      </div>
+    </section>
 
-  function runPhase(){
-    if(elapsed>=durMin*60){ finish(); return; }
-    const [label,sec,type]=PATTERNS[mode].phases[phaseIdx];
-    phaseEl.textContent=label;
-    const target = type==='in'?1 : type==='out'?0.5 : lastScale;
-    lastScale=target;
-    circle.style.transition=`transform ${sec}s ease-in-out`;
-    halo.style.transition=`transform ${sec}s ease-in-out, opacity ${sec}s ease-in-out`;
-    // force reflow then set
-    requestAnimationFrame(()=>{ circle.style.transform=`scale(${target})`;
-      halo.style.transform=`scale(${target*1.15})`; halo.style.opacity = type==='in'?0.9:0.5; });
-    tone(type);
-    // small countdown inside phase
-    let left=Math.round(sec);
-    $('cyc').textContent = `цикл ${cycles+1}`;
-    phaseTimer=setTimeout(()=>{
-      phaseIdx=(phaseIdx+1)%PATTERNS[mode].phases.length;
-      if(phaseIdx===0) cycles++;
-      runPhase();
-    }, sec*1000);
-  }
+    <section class="panel" id="panel-rules" data-panel="rules" hidden>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Что куда разрешено</p>
+          <h2>Матрица хранения данных</h2>
+        </div>
+        <p>GitHub, Obsidian и backup решают разные задачи. Один сервис не подменяет другой.</p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Тип данных</th><th>Канон</th><th>Разрешено</th><th>Запрещено</th></tr></thead>
+          <tbody>
+            <tr><td>Код и архитектура</td><td>Private GitHub</td><td>Ветки, review, проверенный main</td><td>Прямой runtime → main</td></tr>
+            <tr><td>Знания и уроки</td><td>Second Brain vault</td><td>Markdown, ссылки, решения, чек-листы</td><td>Секреты, raw health, полные переписки</td></tr>
+            <tr><td>Runtime и базы</td><td>Конкретный сервер</td><td>Backup, off-site, restore-drill</td><td>GitHub и обычный Obsidian vault</td></tr>
+            <tr><td>Секреты</td><td>Secret store / env</td><td>Отдельный encrypted backup</td><td>Markdown, отчёты, Git history</td></tr>
+            <tr><td>Задачи и evidence</td><td>Поток2 + отчёты</td><td>Redacted факты и ссылки на проверки</td><td>Токены и приватные transcripts</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="principles">
+        <article><span>01</span><h3>Один файл — один writer</h3><p>В конкретный момент канонический файл меняет один участник.</p></article>
+        <article><span>02</span><h3>Новый материал — в inbox</h3><p>Агент создаёт новую заметку в своей папке, а не переписывает чужую.</p></article>
+        <article><span>03</span><h3>Канон — только после review</h3><p>Изменение существующей базы проходит через diff и независимую проверку.</p></article>
+        <article><span>04</span><h3>Sync не равен backup</h3><p>Для восстановления нужен отдельный архив и регулярный restore-drill.</p></article>
+      </div>
+    </section>
+  </main>
 
-  function stop(reset_){
-    running=false; clearTimeout(phaseTimer); clearInterval(tickTimer);
-    if(reset_){ finish(); }
-  }
+  <footer>
+    <span>AI-офис Николая · адаптация уроков 3–6</span>
+    <a href="docs/to-be.md">Текстовая архитектура</a>
+  </footer>
 
-  function finish(){
-    running=false; clearTimeout(phaseTimer); clearInterval(tickTimer);
-    $('stage').classList.add('hidden'); $('bottom').classList.add('hidden');
-    const done=$('done'); done.style.display='flex';
-    $('doneCycles').textContent=cycles;
-    const mins=Math.max(1,Math.round(elapsed/60));
-    $('doneMsg').innerHTML = cycles<2
-      ? 'Даже пара минут снижает пульс — уже польза.'
-      : `${mins} мин в резонансе. Выдох длиннее/ровное дыхание запустили вагус — пульс ниже, тонус мягче.<br><span style="color:#6f7d70">Теперь просто подыши носом свободно.</span>`;
-  }
-
-  function reset(){
-    $('done').style.display='none';
-    $('stage').classList.remove('hidden'); $('bottom').classList.remove('hidden');
-    $('startBtn').textContent='Начать'; $('startBtn').classList.remove('ghost');
-    $('soundToggle').style.visibility='visible';
-    document.querySelectorAll('.chip').forEach(c=>c.style.opacity=1);
-    circle.style.transition='transform .6s'; circle.style.transform='scale(.5)';
-    halo.style.transform='scale(.5)'; halo.style.opacity=.6;
-    phaseEl.textContent='Готов?'; $('cyc').textContent=''; lastScale=0.5;
-    buildChips();
-  }
-
-  function toggleSound(){ soundOn=!soundOn; $('soundState').textContent=soundOn?'вкл':'выкл'; ensureAudio(); if(actx&&actx.state==='suspended')actx.resume(); }
-
-  buildChips();
-</script>
+  <script id="architecture-data" type="application/json">{"schema_version": 2, "updated_on": "2026-07-21", "recommended_option": "controlled_writer", "groups": [{"id": "interfaces", "label": "Где работает Николай", "number": "01", "summary": "Голос, Telegram, Obsidian и VS Code"}, {"id": "control", "label": "Кто управляет изменениями", "number": "02", "summary": "Архитектор, исполнитель и очередь задач"}, {"id": "knowledge", "label": "Где хранится канон", "number": "03", "summary": "GitHub, второй мозг и последовательная запись"}, {"id": "runtime", "label": "Кто выполняет работу", "number": "04", "summary": "Директор, sub-агенты и отдельные Hermes-контуры"}, {"id": "resilience", "label": "Как система выживает", "number": "05", "summary": "Наблюдение, резервирование и восстановление"}], "nodes": [{"id": "owner", "label": "Николай", "group": "interfaces", "kind": "human", "status": "live", "short": "Владелец и финальное решение", "details": "Формулирует задачи голосом или текстом, подтверждает значимые решения и принимает результат. Не должен вручную пересылать данные между агентами.", "writes": ["задачи", "решения", "заметки"], "reads": ["статусы", "отчёты", "архитектуру"]}, {"id": "local-mac", "label": "Локальный Mac", "group": "interfaces", "kind": "device", "status": "live", "short": "Obsidian, Codex и VS Code", "details": "Главное рабочее место. Здесь открыт канонический Obsidian vault, Codex проектирует и принимает, Claude Code в VS Code выполняет утверждённые изменения.", "writes": ["локальные заметки", "ветки Git"], "reads": ["GitHub main", "agent inbox"]}, {"id": "telegram", "label": "Telegram", "group": "interfaces", "kind": "channel", "status": "live", "short": "Удалённый интерфейс, не база данных", "details": "Через Telegram Николай ставит задачи и получает ответы. Сообщения, которые нужно сохранить, превращаются в структурированные записи через inbox, а не остаются единственной копией в чате.", "writes": ["входящие запросы"], "reads": ["ответы", "уведомления"]}, {"id": "remote-mac", "label": "Удалённый Mac", "group": "interfaces", "kind": "device", "status": "planned", "short": "Постоянно включённый control plane", "details": "Держит runner, watchdog и отдельные worktree. Продолжает контроль, когда локальный Mac выключен, но не становится вторым неконтролируемым писателем в main.", "writes": ["ветки", "отчёты"], "reads": ["очередь", "GitHub"]}, {"id": "codex", "label": "Codex Architect", "group": "control", "kind": "architect", "status": "live", "short": "Аудит, ТЗ и независимая приёмка", "details": "Проверяет факты, проектирует решение, задаёт критерии приёмки и не принимает отчёт исполнителя на слово.", "writes": ["ТЗ", "review", "решения"], "reads": ["источники", "diff", "evidence"]}, {"id": "claude", "label": "Claude Code", "group": "control", "kind": "engineer", "status": "live", "short": "Исполнитель в VS Code и Telegram", "details": "Выполняет утверждённое ТЗ, работает в отдельной ветке, прикладывает проверки и передаёт результат на независимую приёмку.", "writes": ["код", "документы", "отчёт"], "reads": ["ТЗ", "канон", "замечания review"]}, {"id": "potok2", "label": "Поток2", "group": "control", "kind": "orchestration", "status": "planned", "short": "Очередь задач и доказательств", "details": "Фиксирует задачу, владельца, исполнителя, reviewer, stop-gates и evidence. Автоматизирует передачу между Codex и Claude без ручного копирования сообщений.", "writes": ["case state", "handoff"], "reads": ["inbox", "reports"]}, {"id": "github", "label": "Private GitHub", "group": "knowledge", "kind": "canon", "status": "live", "short": "Канон версий, а не runtime-хранилище", "details": "Хранит код, архитектуру, governance и безопасные Markdown-знания. В main попадает только проверенный результат; секреты, БД, raw health и runtime state сюда не идут.", "writes": ["commits", "reviewed main"], "reads": ["branches", "pull requests"]}, {"id": "obsidian", "label": "Obsidian Second Brain", "group": "knowledge", "kind": "knowledge", "status": "live", "short": "Локальный интерфейс к Markdown vault", "details": "Vault канонический vault second-brain является локальным Git-репозиторием. Obsidian Git делает pull и commit-and-sync каждые пять минут на основном Mac.", "writes": ["заметки Николая"], "reads": ["GitHub main", "agent inbox"]}, {"id": "vault-writer", "label": "Vault Writer", "group": "knowledge", "kind": "control", "status": "recommended", "short": "Один последовательный писатель", "details": "Принимает новые заметки от удалённых агентов, проверяет allowlist и секреты, делает pull, атомарную запись, commit и push с retry. Убирает гонку нескольких писателей.", "writes": ["agent inbox", "audit metadata"], "reads": ["очередь заметок", "актуальный main"]}, {"id": "openclaw-director", "label": "OpenClaw AI-директор", "group": "runtime", "kind": "agent", "status": "live", "short": "Наблюдатель и постановщик задач", "details": "Собирает сигналы, считает KPI, готовит брифы и делегирует узким sub-агентам. Не редактирует production-конфиги и не перезапускает gateway.", "writes": ["брифы", "agent inbox"], "reads": ["разрешённые знания", "метрики"]}, {"id": "subagents", "label": "Узкие sub-агенты", "group": "runtime", "kind": "agent", "status": "planned", "short": "Роль, отдельный workspace, минимум прав", "details": "Исполняют конкретные бизнес-функции внутри одного trust boundary. Получают только необходимые инструменты, данные и бюджет.", "writes": ["результат роли", "отчёт"], "reads": ["узкий контекст"]}, {"id": "hermes", "label": "Hermes-контуры", "group": "runtime", "kind": "agent", "status": "live", "short": "Личный, семейные и публичные агенты", "details": "Hermes Main, Father-MAX, Добрыня, Аптечка и Sales Rep остаются отдельными контурами, когда различаются пользователи, секреты, медицинские данные или blast radius.", "writes": ["runtime data", "redacted report"], "reads": ["свой workspace", "свои секреты"]}, {"id": "watchdog", "label": "Watchdog", "group": "resilience", "kind": "monitor", "status": "planned", "short": "Замечает отказ раньше владельца", "details": "Следит за gateway, очередями, пропущенными ответами, drift и резервными моделями. Создаёт инцидент, но не делает рискованный ремонт без политики.", "writes": ["incident", "health status"], "reads": ["логи без секретов", "smoke endpoints"]}, {"id": "backup", "label": "Backup + off-site", "group": "resilience", "kind": "backup", "status": "partial", "short": "Отдельно от GitHub и синхронизации", "details": "Архивирует runtime state, БД и разрешённые данные в независимое хранилище. GitHub хранит код и документы, но не заменяет backup production-данных.", "writes": ["immutable archive", "manifest"], "reads": ["allowlisted runtime data"]}, {"id": "restore", "label": "Restore drill", "group": "resilience", "kind": "verification", "status": "planned", "short": "Доказательство, что архив открывается", "details": "Периодически восстанавливает архив в изолированное место, проверяет manifest и фиксирует время восстановления. Наличие файла backup без restore-drill не считается защитой.", "writes": ["акт проверки"], "reads": ["backup archive", "checksums"]}], "routes": [{"id": "knowledge-note", "label": "Заметка из Telegram", "description": "Сообщение превращается в проверяемую заметку и появляется в Obsidian.", "path": ["owner", "telegram", "openclaw-director", "vault-writer", "github", "obsidian", "owner"]}, {"id": "code-change", "label": "Изменение системы", "description": "Codex проектирует, Claude выполняет, Codex принимает, после чего изменение попадает в канон.", "path": ["owner", "codex", "potok2", "claude", "github", "codex", "owner"]}, {"id": "agent-delegation", "label": "Работа sub-агента", "description": "Директор выдаёт узкую задачу, sub-агент возвращает результат без доступа ко всей системе.", "path": ["owner", "telegram", "openclaw-director", "subagents", "vault-writer", "github", "obsidian"]}, {"id": "incident", "label": "Инцидент и восстановление", "description": "Watchdog создаёт инцидент, ремонт проходит через контролируемый цикл и проверяется восстановлением.", "path": ["watchdog", "potok2", "codex", "claude", "backup", "restore", "owner"]}], "options": [{"id": "course-direct", "number": "A", "label": "Точно по курсу", "verdict": "Только для пилота", "summary": "Mac, Claude и OpenClaw напрямую pull/push в main.", "advantages": ["Минимум компонентов", "Уже почти настроено", "Быстрый старт"], "risks": ["Конфликты нескольких писателей", "Случайная перезапись", "Широкие write-ключи"]}, {"id": "controlled_writer", "number": "B", "label": "Контролируемый writer", "verdict": "Рекомендуется", "summary": "Obsidian синхронизирует Mac, агенты пишут через inbox и одного writer.", "advantages": ["Один порядок записи", "Понятный автор и источник", "Review для канонических файлов"], "risks": ["Нужен небольшой сервис", "Нужно определить allowlist"]}, {"id": "obsidian-sync", "number": "C", "label": "Obsidian Sync + Git", "verdict": "Позже, если нужен mobile", "summary": "Obsidian Sync связывает устройства, Git работает как история с одного устройства.", "advantages": ["Удобный mobile", "E2E encryption", "Headless-клиент"], "risks": ["Подписка", "Дополнительный слой", "Нельзя смешивать sync-механизмы без правил"]}], "rollout": [{"id": "inventory", "number": "01", "title": "Назначить канонический vault", "detail": "Зафиксировать second-brain и классифицировать остальные vault без массового переноса.", "status": "next"}, {"id": "privacy", "number": "02", "title": "Закрыть privacy-гейт", "detail": "Добавить gitignore, исключить workspace/plugin state, секреты, БД, raw health и transcripts.", "status": "planned"}, {"id": "course", "number": "03", "title": "Перенести уроки 3–6", "detail": "Сгенерировать Obsidian-заметки: источник, точный конспект, наши решения, чек-лист и ссылки.", "status": "planned"}, {"id": "inbox", "number": "04", "title": "Развести входящие агентов", "detail": "Создать agent inbox и правило: новый файл можно, изменение канона только через review.", "status": "planned"}, {"id": "writer", "number": "05", "title": "Запустить Vault Writer", "detail": "Последовательная запись, secret-scan, pull, atomic write, commit, push и retry.", "status": "planned"}, {"id": "agents", "number": "06", "title": "Подключать по одному агенту", "detail": "Сначала OpenClaw, затем Claude Telegram, потом остальные контуры после smoke.", "status": "planned"}, {"id": "recovery", "number": "07", "title": "Проверить конфликт и восстановление", "detail": "Сымитировать одновременную правку, откат заметки и восстановление независимого backup.", "status": "planned"}], "lessons": [{"number": "03", "title": "Инфраструктура OpenClaw", "theme": "Сервер, Claude Code, MCP и базовые инструменты", "href": "course/lesson-03.html"}, {"number": "04", "title": "GitHub и вайб-кодинг", "theme": "SSH, GitHub CLI, Pages и дизайн-скиллы", "href": "course/lesson-04.html"}, {"number": "05", "title": "n8n и автоматизации", "theme": "Workflow, cron, интеграции и границы Hermes", "href": "course/lesson-05.html"}, {"number": "06", "title": "Claude Code в Telegram", "theme": "AI-офис, Obsidian vault, GitHub и sub-агенты", "href": "course/lesson-06.html"}]}</script>
+  <script src="assets/architecture-map.js"></script>
 </body>
 </html>

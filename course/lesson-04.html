@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ИИ-ВИЗАЦИЯ: OPENCLAW — GitHub + Домен №1 + Вайб-кодинг</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Onest:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #0a0a0f; --bg-card: #12121a; --bg-card-hover: #181825;
+    --border: #1e1e2e; --border-accent: #2a2a3e;
+    --text-primary: #e8e6f0; --text-secondary: #8b879e; --text-muted: #5a5670;
+    --accent: #7c5bf5; --accent-glow: #9d7cff; --accent-soft: rgba(124,91,245,0.12);
+    --green: #34d399; --green-glow: #6ee7b7; --green-soft: rgba(52,211,153,0.1);
+    --amber: #fbbf24; --amber-soft: rgba(251,191,36,0.1);
+    --red-soft: rgba(248,113,113,0.1); --red: #f87171;
+    --radius: 14px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Onest',sans-serif; background:var(--bg-deep); color:var(--text-primary); line-height:1.65; min-height:100vh; -webkit-font-smoothing:antialiased; }
+  body::before { content:''; position:fixed; inset:0; background-image:radial-gradient(circle at 20% 20%,rgba(124,91,245,0.04) 0%,transparent 50%),radial-gradient(circle at 80% 80%,rgba(52,211,153,0.03) 0%,transparent 50%); pointer-events:none; z-index:0; }
+  .wrapper { position:relative; z-index:1; max-width:680px; margin:0 auto; padding:40px 20px 80px; }
+
+  /* ─── HEADER ─── */
+  .header { text-align:center; margin-bottom:48px; }
+  .header__badge { display:inline-block; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--accent-glow); background:var(--accent-soft); border:1px solid rgba(124,91,245,0.2); padding:6px 16px; border-radius:100px; margin-bottom:24px; animation:fadeDown .6s ease both; }
+  .header__title { font-size:clamp(22px,5vw,34px); font-weight:800; line-height:1.2; letter-spacing:-0.5px; margin-bottom:20px; animation:fadeDown .6s ease .1s both; }
+  .header__title span { background:linear-gradient(135deg,var(--accent-glow),var(--green)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .header__topics { list-style:none; display:flex; flex-direction:column; gap:7px; max-width:460px; margin:0 auto; animation:fadeDown .6s ease .2s both; }
+  .header__topics li { font-size:13.5px; color:var(--text-secondary); display:flex; align-items:flex-start; gap:8px; text-align:left; }
+  .header__topics li::before { content:'→'; color:var(--accent); flex-shrink:0; font-family:'JetBrains Mono',monospace; font-size:11px; margin-top:3px; }
+
+  /* ─── PROGRESS ─── */
+  .progress-wrap { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:20px 24px; margin-bottom:36px; position:sticky; top:12px; z-index:10; backdrop-filter:blur(16px); background:rgba(18,18,26,0.92); animation:fadeDown .6s ease .3s both; }
+  .progress-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .progress-label { font-size:13px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:1px; font-family:'JetBrains Mono',monospace; }
+  .progress-count { font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:var(--accent-glow); }
+  .progress-bar { width:100%; height:8px; background:var(--border); border-radius:100px; overflow:hidden; }
+  .progress-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--green)); border-radius:100px; transition:width .5s cubic-bezier(.34,1.56,.64,1); width:0%; }
+
+  /* ─── SECTION ─── */
+  .section { margin-bottom:28px; }
+  .section__header { display:flex; align-items:center; gap:12px; margin-bottom:14px; padding-left:2px; }
+  .section__num { font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:var(--accent); background:var(--accent-soft); width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:8px; flex-shrink:0; }
+  .section__title { font-size:16px; font-weight:700; letter-spacing:-0.2px; line-height:1.35; }
+  .section__card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; transition:border-color .3s; }
+  .section__card:hover { border-color:var(--border-accent); }
+
+  /* ─── CHECKLIST ITEM ─── */
+  .item { display:flex; align-items:flex-start; gap:14px; padding:16px 20px; border-bottom:1px solid var(--border); transition:background .2s; }
+  .item:last-child { border-bottom:none; }
+  .item:hover { background:var(--bg-card-hover); }
+  .item.checked .item__text { color:var(--text-muted); text-decoration:line-through; }
+  .item__check { position:relative; width:22px; height:22px; flex-shrink:0; margin-top:1px; pointer-events:auto; cursor:pointer; }
+  .item__check input { position:absolute; opacity:0; width:100%; height:100%; cursor:pointer; z-index:2; }
+  .item__check .cm { width:22px; height:22px; border:2px solid var(--border-accent); border-radius:6px; display:flex; align-items:center; justify-content:center; transition:all .25s cubic-bezier(.34,1.56,.64,1); cursor:pointer; }
+  .item__check .cm svg { width:12px; height:12px; opacity:0; transform:scale(0); transition:all .25s cubic-bezier(.34,1.56,.64,1); }
+  .item__check input:checked + .cm { background:var(--green); border-color:var(--green); }
+  .item__check input:checked + .cm svg { opacity:1; transform:scale(1); }
+  .item__body { flex:1; min-width:0; pointer-events:none; user-select:text; }
+  .item__body a, .item__body .lnk, .item__body .cmd-copy, .item__body .btn-copy { pointer-events:auto !important; cursor:pointer !important; }
+  .item__text { font-size:14.5px; font-weight:500; color:var(--text-primary); transition:all .3s; }
+  .item__hint { font-size:13px; color:var(--text-secondary); margin-top:5px; line-height:1.65; }
+  .item__hint strong { color:var(--text-primary); }
+
+  /* ─── LNK ─── */
+  .lnk { display:inline-flex; align-items:center; gap:5px; font-size:13px; font-family:'JetBrains Mono',monospace; color:var(--accent-glow); text-decoration:none; transition:color .2s; word-break:break-all; }
+  .lnk:hover { color:#bba4ff; text-decoration:underline; }
+  .lnk svg { width:13px; height:13px; flex-shrink:0; }
+
+  /* ─── RES-BLOCK ─── */
+  .res-block { padding:14px 20px; border-bottom:1px solid var(--border); transition:background .2s; }
+  .res-block:last-child { border-bottom:none; }
+  .res-block:hover { background:var(--bg-card-hover); }
+  .res-block__title { font-size:14px; font-weight:600; color:var(--text-primary); margin-bottom:3px; }
+  .res-block__sub { font-size:13px; color:var(--text-secondary); margin-bottom:7px; line-height:1.5; }
+
+  /* ─── NOTE ─── */
+  .note { display:flex; align-items:flex-start; gap:10px; padding:14px 20px; font-size:13px; color:var(--text-secondary); line-height:1.65; border-bottom:1px solid var(--border); }
+  .note:last-child { border-bottom:none; }
+  .note--warn { background:var(--amber-soft); color:var(--amber); }
+  .note--info { background:var(--accent-soft); }
+  .note--alert { background:var(--red-soft); color:var(--red); }
+  .note--green { background:var(--green-soft); color:var(--green-glow); }
+  .note__icon { flex-shrink:0; font-size:15px; }
+  .note strong { color:inherit; }
+  .note .lnk { color:var(--accent-glow); }
+
+  /* ─── INFO BLOCK ─── */
+  .info-block { padding:14px 20px; border-bottom:1px solid var(--border); font-size:13.5px; color:var(--text-secondary); line-height:1.7; }
+  .info-block:last-child { border-bottom:none; }
+  .info-block strong { color:var(--text-primary); font-weight:600; }
+  .info-block p { margin-bottom:8px; }
+  .info-block p:last-child { margin-bottom:0; }
+
+  /* ─── TERM ─── */
+  .term { padding:16px 20px; border-bottom:1px solid var(--border); }
+  .term:last-child { border-bottom:none; }
+  .term__name { font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--accent-glow); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:7px; }
+  .term__def { font-size:14px; color:var(--text-primary); font-weight:500; margin-bottom:8px; line-height:1.55; }
+  .term__example { font-size:13px; color:var(--text-secondary); line-height:1.65; padding:10px 14px; background:rgba(124,91,245,0.06); border-left:2px solid rgba(124,91,245,0.3); border-radius:0 6px 6px 0; }
+  .mono { font-family:'JetBrains Mono',monospace; color:var(--accent-glow); font-size:12px; }
+
+  /* ─── TABLE ─── */
+  .data-table { width:100%; font-size:13px; border-collapse:collapse; }
+  .data-table th { text-align:left; font-weight:600; color:var(--text-muted); font-family:'JetBrains Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:1.2px; padding:10px 20px; border-bottom:1px solid var(--border); background:rgba(0,0,0,0.2); }
+  .data-table td { padding:11px 20px; border-bottom:1px solid var(--border); color:var(--text-secondary); vertical-align:top; line-height:1.5; }
+  .data-table tr:last-child td { border-bottom:none; }
+  .data-table td:first-child { color:var(--text-primary); font-weight:600; }
+
+  /* ─── ARCH BOX ─── */
+  .arch-box { background:rgba(0,0,0,0.3); border:1px solid var(--border-accent); border-radius:10px; padding:18px 22px; margin:12px 20px; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text-secondary); line-height:2; white-space:pre; overflow-x:auto; }
+
+  /* ─── PROMPT BLOCK ─── */
+  .prompt-block { background:rgba(0,0,0,0.25); border:1px solid var(--border-accent); border-radius:10px; padding:18px 20px; margin:12px 16px; }
+  .prompt-block__title { font-size:13px; font-weight:700; color:var(--accent-glow); margin-bottom:10px; display:flex; align-items:center; gap:8px; font-family:'JetBrains Mono',monospace; text-transform:uppercase; letter-spacing:1px; }
+  .prompt-block__text { font-size:13px; color:var(--text-secondary); line-height:1.7; white-space:pre-wrap; margin-bottom:14px; word-break:break-word; }
+  .btn-copy { display:inline-flex; align-items:center; gap:6px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; color:var(--accent-glow); background:var(--accent-soft); border:1px solid rgba(124,91,245,0.3); padding:8px 16px; border-radius:8px; cursor:pointer; transition:all .2s; text-transform:uppercase; letter-spacing:1px; }
+  .btn-copy:hover { background:rgba(124,91,245,0.2); border-color:var(--accent); }
+  .btn-copy.copied { color:var(--green); background:var(--green-soft); border-color:rgba(52,211,153,0.3); }
+
+  /* ─── CODE BLOCK ─── */
+  .code-block { background:rgba(0,0,0,0.4); border:1px solid var(--border-accent); border-radius:10px; padding:16px 20px; margin:12px 16px; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--green-glow); line-height:1.8; white-space:pre-wrap; word-break:break-all; overflow-x:auto; }
+  .code-block__label { font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:8px; display:block; }
+  .code-block .btn-copy { margin-top:12px; }
+
+  /* ─── CMD COPY ─── */
+  .cmd-copy { background:rgba(0,0,0,0.35); border:1px solid var(--border-accent); border-radius:8px; padding:10px 14px; margin:8px 0; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .cmd-copy__text { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--green-glow); line-height:1.6; word-break:break-all; flex:1; white-space:pre-wrap; }
+  .cmd-copy .btn-copy { flex-shrink:0; padding:5px 12px; font-size:10px; }
+
+  /* ─── SPOILER ─── */
+  .spoiler { border-bottom:1px solid var(--border); }
+  .spoiler:last-child { border-bottom:none; }
+  .spoiler summary { padding:14px 20px; font-size:13.5px; font-weight:600; color:var(--text-secondary); cursor:pointer; list-style:none; display:flex; align-items:center; gap:8px; transition:color .2s; }
+  .spoiler summary:hover { color:var(--text-primary); }
+  .spoiler summary::before { content:'▸'; font-size:12px; transition:transform .2s; }
+  .spoiler[open] summary::before { transform:rotate(90deg); }
+  .spoiler__content { padding:0 20px 16px 34px; font-size:13px; color:var(--text-secondary); line-height:1.7; }
+  .spoiler__content p { margin-bottom:8px; }
+  .spoiler__content strong { color:var(--text-primary); font-weight:600; }
+
+  /* ─── SECTION DIVIDER ─── */
+  .section-divider { text-align:center; margin:48px 0 32px; padding:0 20px; }
+  .section-divider__line { height:1px; background:linear-gradient(90deg,transparent,var(--accent),transparent); margin-bottom:20px; }
+  .section-divider__title { font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--accent-glow); text-transform:uppercase; letter-spacing:3px; }
+
+  /* ─── FOOTER ─── */
+  .footer { text-align:center; margin-top:48px; }
+  .footer__done { display:none; background:var(--green-soft); border:1px solid rgba(52,211,153,0.25); border-radius:var(--radius); padding:32px 24px; margin-bottom:24px; }
+  .footer__done.visible { display:block; animation:popIn .5s cubic-bezier(.34,1.56,.64,1) both; }
+  .footer__done-emoji { font-size:48px; margin-bottom:10px; }
+  .footer__done-text { font-size:22px; font-weight:800; color:var(--green); margin-bottom:6px; }
+  .footer__done-sub { font-size:15px; color:var(--text-secondary); }
+  .footer__schedule { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:20px 24px; margin-bottom:20px; font-size:14px; }
+  .footer__schedule-title { font-weight:700; margin-bottom:8px; font-size:15px; }
+  .footer__schedule-row { display:flex; justify-content:space-between; padding:4px 0; color:var(--text-secondary); }
+  .footer__schedule-row span:first-child { color:var(--text-primary); font-weight:500; }
+  .footer__contact { font-size:14px; color:var(--text-secondary); margin-bottom:20px; }
+  .footer__contact a { color:#2dd4bf; text-decoration:underline; text-decoration-color:rgba(45,212,191,0.4); font-weight:700; }
+  .btn-reset { background:none; border:1px solid var(--border); color:var(--text-muted); font-family:'JetBrains Mono',monospace; font-size:12px; padding:8px 20px; border-radius:100px; cursor:pointer; transition:all .2s; }
+  .btn-reset:hover { border-color:var(--red); color:var(--red); }
+  .tg { color:#2dd4bf !important; font-weight:700; text-decoration:underline; text-decoration-color:rgba(45,212,191,0.4); }
+  #confetti-canvas { position:fixed; inset:0; z-index:9999; pointer-events:none; }
+  @keyframes fadeDown { from{opacity:0;transform:translateY(-12px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes popIn { from{opacity:0;transform:scale(0.8)} to{opacity:1;transform:scale(1)} }
+
+  @media (max-width:480px) {
+    .wrapper { padding:28px 14px 60px; }
+    .item,.note,.term,.info-block,.res-block { padding:12px 16px; }
+    .cmd-copy { padding:8px 12px; flex-direction:column; align-items:flex-start; }
+    .progress-wrap { padding:16px 18px; top:8px; }
+    .footer__schedule-row { flex-direction:column; gap:2px; }
+    .data-table th,.data-table td { padding:8px 14px; }
+    .arch-box { margin:10px 14px; font-size:11px; padding:14px 16px; }
+    .prompt-block { margin:10px 12px; }
+    .code-block { margin:10px 12px; font-size:11px; }
+    .header__title { font-size:22px; }
+  }
+  .footer__final-part3 { background:linear-gradient(135deg,rgba(251,191,36,0.08),rgba(219,39,119,0.08)); border:1px solid rgba(251,191,36,0.25); border-radius:var(--radius); padding:34px 24px; margin-bottom:24px; text-align:center; position:relative; overflow:hidden; }
+  .footer__final-part3::before { content:''; position:absolute; inset:0; background:radial-gradient(circle at 20% 0%, rgba(251,191,36,0.12), transparent 50%), radial-gradient(circle at 80% 100%, rgba(219,39,119,0.12), transparent 50%); pointer-events:none; }
+  .footer__final-emoji { font-size:54px; margin-bottom:12px; line-height:1; position:relative; }
+  .footer__final-text { font-size:24px; font-weight:800; background:linear-gradient(90deg,#fbbf24,#db2777); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:10px; letter-spacing:-0.4px; position:relative; }
+  .footer__final-sub { font-size:15px; color:var(--text-secondary); line-height:1.6; max-width:560px; margin:0 auto; position:relative; }
+</style>
+</head>
+<body>
+<canvas id="confetti-canvas"></canvas>
+<div class="wrapper">
+
+<!-- ═══ HEADER ═══ -->
+<header class="header">
+  <div class="header__badge">ИИ-ВИЗАЦИЯ: OPENCLAW · Урок 4</div>
+  <h1 class="header__title">GitHub + Домен №1 + <span>Вайб-кодинг</span></h1>
+  <ul class="header__topics">
+    <li>Что такое GitHub и как он связан с OpenClaw</li>
+    <li>Регистрация, Public и Private репозитории</li>
+    <li>SSH-ключи — подключаем OpenClaw к GitHub</li>
+    <li>Покупка домена на Porkbun и настройка DNS</li>
+    <li>Подключение домена к GitHub Pages + HTTPS</li>
+    <li>Дизайнерские скиллы для крутых сайтов</li>
+    <li>Практика: лендинг через Telegram → сайт на своём домене</li>
+  </ul>
+</header>
+
+<div class="progress-wrap">
+  <div class="progress-top">
+    <span class="progress-label">Прогресс</span>
+    <span class="progress-count" id="progressCount">0 / 0</span>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     00 — ПРЕДВАРИТЕЛЬНЫЕ ТРЕБОВАНИЯ
+═══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <div class="section__num">00</div>
+    <div class="section__title">Предварительные требования</div>
+  </div>
+  <div class="section__card">
+    <div class="note note--info">
+      <span class="note__icon">📋</span>
+      <span>Убедитесь, что всё из предыдущих уроков настроено и работает. Без этого урок 4 не пройти.</span>
+    </div>
+
+    <div class="item" data-key="prereq-vps">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">VPS-сервер с установленным OpenClaw (урок 3)</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="prereq-claude">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Claude Code установлен в VS Code и работает (урок 3)</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="prereq-bot">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Telegram-бот подключён к OpenClaw (урок 3)</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="prereq-vpn">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">VPN включён</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="prereq-card">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Карта для оплаты домена (~$10–15/год)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     01 — ТЕРМИНЫ
+═══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <div class="section__num">01</div>
+    <div class="section__title">Новые термины урока</div>
+  </div>
+  <div class="section__card">
+    <div class="note note--info">
+      <span class="note__icon">📖</span>
+      <span>Теоретический блок — смотрим вместе с видеоуроком. Ключевые понятия, к которым можно вернуться в любой момент.</span>
+    </div>
+
+    <div class="term">
+      <div class="term__name">GitHub</div>
+      <div class="term__def">Онлайн-платформа для хранения кода и файлов с версионированием. Каждое изменение сохраняется в истории — можно откатить, сравнить, работать в команде.</div>
+      <div class="term__example">📌 Мы используем GitHub как бесплатный хостинг для сайтов и лендингов. OpenClaw подключается к нему и сам заливает файлы.</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">Репозиторий (Repository / Repo)</div>
+      <div class="term__def">Папка проекта на GitHub. Внутри лежат файлы сайта: HTML, CSS, картинки. Бывает Public (открытый, код виден всем) и Private (закрытый, код видите только вы).</div>
+      <div class="term__example">📌 Как папка на вашем компьютере, но в облаке. С историей всех изменений и возможностью работать откуда угодно.</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">GitHub Pages</div>
+      <div class="term__def">Бесплатный хостинг от GitHub. Превращает файлы из репозитория в рабочий сайт с адресом <span class="mono">username.github.io</span> или на вашем домене.</div>
+      <div class="term__example">📌 Положили index.html в репозиторий → включили Pages → сайт доступен всему миру. Бесплатно.</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">SSH-ключ</div>
+      <div class="term__def">Цифровой пропуск для безопасного подключения к GitHub без логина и пароля. Приватный ключ хранится на сервере (никому не показываем), публичный — добавляем в GitHub.</div>
+      <div class="term__example">📌 Как электронный пропуск на работу. Вместо того чтобы каждый раз показывать паспорт (логин/пароль), просто прикладываете карту (SSH-ключ).</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">Домен</div>
+      <div class="term__def">Адрес сайта в интернете (например, <span class="mono">mybusiness.com</span>). Покупается у регистратора, принадлежит вам.</div>
+      <div class="term__example">📌 Как номер телефона: вы его покупаете, он только ваш, и люди по нему находят именно вас.</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">DNS (Domain Name System)</div>
+      <div class="term__def">Система, которая связывает ваш домен с конкретным сервером. Когда человек вводит <span class="mono">mybusiness.com</span>, DNS говорит браузеру: «иди на сервер GitHub Pages».</div>
+      <div class="term__example">📌 Как телефонная книга интернета. Вы помните имя (домен), а DNS знает номер (IP-адрес сервера).</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">DNS-записи (A и CNAME)</div>
+      <div class="term__def"><strong>A-запись</strong> — связывает домен с IP-адресом. <strong>CNAME-запись</strong> — связывает поддомен (например, <span class="mono">www</span>) с другим адресом.</div>
+      <div class="term__example">📌 A-запись: «mybusiness.com → 185.199.108.153». CNAME: «www.mybusiness.com → username.github.io».</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">HTTPS / SSL-сертификат</div>
+      <div class="term__def">Шифрование между браузером и сайтом. Замочек 🔒 в адресной строке. GitHub Pages выпускает бесплатный сертификат Let's Encrypt автоматически.</div>
+      <div class="term__example">📌 Без HTTPS браузер покажет «Небезопасно». С HTTPS — ваш сайт выглядит профессионально и данные защищены.</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">Git push</div>
+      <div class="term__def">Команда, которая отправляет файлы из локальной папки (или с VPS) в репозиторий на GitHub. OpenClaw делает это автоматически.</div>
+      <div class="term__example">📌 «Push» = «толкнуть» файлы из вашего сервера на GitHub. Сайт обновляется через несколько секунд после push.</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">GitHub MCP</div>
+      <div class="term__def">Официальный MCP-сервер от GitHub (помните MCP из урока 3 — «переходник» к внешнему сервису). Даёт Claude Code и агенту OpenClaw готовые структурные инструменты для работы с GitHub: issues, pull requests, ревью кода, поиск по репозиториям.</div>
+      <div class="term__example">📌 SSH-ключ умеет пушить файлы, GitHub CLI — создавать репозитории. GitHub MCP добавляет третий слой: агент «видит» ваш GitHub структурно и работает с ним как с набором инструментов.</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">Скиллы (Skills)</div>
+      <div class="term__def">Плагины для Claude Code и OpenClaw. Файл SKILL.md с инструкциями, который учит агента делать конкретную вещь: создавать красивые сайты, работать с API, анализировать данные.</div>
+      <div class="term__example">📌 В уроке 3 мы ставили 4 инструмента (плагин Superpowers + 3 MCP: TaskMaster, Playwright, AgentMemory). Сейчас добавим дизайн-скилл frontend-design (через Claude Code) и библиотеку стилей Refero.</div>
+    </div>
+
+    <div class="term">
+      <div class="term__name">ClawHub</div>
+      <div class="term__def">Официальный маркетплейс скиллов OpenClaw. Более 13 700 скиллов от сообщества — для дизайна, кода, API, аналитики и многого другого.</div>
+      <div class="term__example">📌 Как App Store, но для скиллов вашего AI-агента. Нашли нужный → установили одной командой → агент умеет новое.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     02 — СХЕМА
+═══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <div class="section__num">02</div>
+    <div class="section__title">Как GitHub связан с OpenClaw — схема</div>
+  </div>
+  <div class="section__card">
+    <div class="note note--info">
+      <span class="note__icon">🗺️</span>
+      <span>Весь урок — это построение вот этой цепочки. К концу у вас будет рабочий pipeline: сказали боту → получили сайт на своём домене.</span>
+    </div>
+
+    <div class="arch-box">Вы (идея) → Claude / Claude Code (генерирует HTML)
+                         ↓
+              OpenClaw на вашем VPS
+                         ↓
+            Git push по SSH → GitHub (репозиторий)
+                         ↓
+              GitHub Pages (хостинг)
+                         ↓
+            Ваш домен (Porkbun) → Сайт онлайн</div>
+
+    <div class="info-block">
+      <p><strong>В одном предложении:</strong> вы пишете боту в Telegram — он создаёт сайт — заливает на GitHub — сайт появляется на вашем домене. Всё автоматически, без единой строчки кода руками.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     03 — GITHUB РЕГИСТРАЦИЯ
+═══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <div class="section__num">03</div>
+    <div class="section__title">Регистрация на GitHub и создание репозиториев</div>
+  </div>
+  <div class="section__card">
+    <div class="note note--info">
+      <span class="note__icon">💡</span>
+      <span><strong>Зачем нам GitHub:</strong> бесплатный хостинг для сайтов, OpenClaw подключается и сам заливает файлы, каждое изменение сохраняется в истории — можно откатить.</span>
+    </div>
+
+    <div class="item" data-key="github-reg">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Зарегистрироваться на GitHub</div>
+        <div class="item__hint">Email + username + пароль. Рекомендация: тот же Gmail, что заводили в уроке 1.<br>
+        <a href="https://github.com" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> github.com — регистрация</a></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="github-public">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Создать Public-репозиторий (основной)</div>
+        <div class="item__hint">Кнопка <strong>«New repository»</strong> → название: например, <span class="mono">sites</span> → тип: <strong>Public</strong> → галочка <strong>«Add a README file»</strong>.<br>Это наш основной репозиторий для сайтов — именно к нему привяжем домен. Всё бесплатно.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="github-private">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Создать Private-репозиторий (демонстрация)</div>
+        <div class="item__hint">Создаём ещё один репозиторий с типом <strong>Private</strong> — код не виден другим пользователям. Полезен для конфиденциальных проектов.</div>
+      </div>
+    </div>
+
+    <div class="note note--warn">
+      <span class="note__icon">⚠️</span>
+      <span><strong>GitHub Pages для Private-репозиториев требует GitHub Pro ($4/мес).</strong> Для наших целей (лендинги, сайты-визитки) Private не нужен — сам сайт всё равно публичный, HTML-код можно увидеть через DevTools в браузере. Мы будем работать с Public-репозиторием.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     04 — SSH + GITHUB CLI
+═══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <div class="section__num">04</div>
+    <div class="section__title">Подключение к GitHub: SSH, GitHub CLI и MCP</div>
+  </div>
+  <div class="section__card">
+    <div class="note note--info">
+      <span class="note__icon">🔑</span>
+      <span>Настраиваем два инструмента: <strong>SSH-ключ</strong> — чтобы OpenClaw мог пушить файлы в репозитории. <strong>GitHub CLI + токен</strong> — чтобы OpenClaw мог сам создавать новые репозитории, управлять настройками и включать GitHub Pages. Вместе они дают полный контроль над GitHub прямо из Telegram.</span>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Что сможет OpenClaw после настройки:</strong></p>
+      <p>— Клонировать, пушить, коммитить, откатывать изменения (SSH)<br>— Создавать и удалять репозитории (GitHub CLI)<br>— Включать и настраивать GitHub Pages (GitHub CLI)<br>— Создавать ветки, issues, pull requests (GitHub CLI)</p>
+    </div>
+
+    <!-- ─── ЧАСТЬ 1: ПОДКЛЮЧЕНИЕ К VPS ─── -->
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Часть 1: SSH-ключ</div>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Шаг 0. Подключиться к VPS</strong> — все команды ниже выполняются на сервере, а не на вашем компьютере.</p>
+    </div>
+
+    <details class="spoiler">
+      <summary>🍎 Подключение к VPS с macOS</summary>
+      <div class="spoiler__content">
+        <p>Откройте <strong>Терминал</strong> (Finder → Программы → Утилиты → Терминал) и выполните:</p>
+        <div class="cmd-copy"><span class="cmd-copy__text" id="cmdSshMac">ssh root@<ВАШ_IP_СЕРВЕРА></span><button class="btn-copy" onclick="copyBlock('cmdSshMac',this)">📋 Скопировать</button></div>
+        <p>Введите пароль от сервера. Вы на VPS.</p>
+      </div>
+    </details>
+
+    <details class="spoiler">
+      <summary>🪟 Подключение к VPS с Windows</summary>
+      <div class="spoiler__content">
+        <p>Нажмите <strong>Win + X</strong> → выберите <strong>«Терминал»</strong> или <strong>«PowerShell»</strong> и выполните:</p>
+        <div class="cmd-copy"><span class="cmd-copy__text" id="cmdSshWin">ssh root@<ВАШ_IP_СЕРВЕРА></span><button class="btn-copy" onclick="copyBlock('cmdSshWin',this)">📋 Скопировать</button></div>
+        <p>Введите пароль от сервера. Вы на VPS.</p>
+        <p><strong>Если команда ssh не найдена:</strong> Windows 10/11 имеет встроенный SSH-клиент, но он может быть отключён. Включите: <strong>Параметры → Приложения → Дополнительные компоненты → Добавить компонент → OpenSSH Client</strong>.</p>
+      </div>
+    </details>
+
+    <!-- SSH keygen -->
+
+    <div class="item" data-key="ssh-gen">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Сгенерировать SSH-ключ на VPS</div>
+        <div class="item__hint">Уже подключились к серверу? Выполните команду (одинаковая для всех — это Linux на VPS):</div>
+        <div class="cmd-copy"><span class="cmd-copy__text" id="cmdSshGen">ssh-keygen -t ed25519 -C "ваш-email@gmail.com"</span><button class="btn-copy" onclick="copyBlock('cmdSshGen',this)">📋 Скопировать</button></div>
+        <div class="item__hint">Нажимайте Enter на все вопросы (место хранения — по умолчанию, пароль — можно пустой).</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="ssh-copy">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Скопировать публичный ключ</div>
+        <div class="cmd-copy"><span class="cmd-copy__text" id="cmdSshCat">cat ~/.ssh/id_ed25519.pub</span><button class="btn-copy" onclick="copyBlock('cmdSshCat',this)">📋 Скопировать</button></div>
+        <div class="item__hint">Скопируйте <strong>всю строку целиком</strong>, которая выводится. Она начинается с <span class="mono">ssh-ed25519</span> и заканчивается вашим email.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="ssh-github">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Добавить SSH-ключ в GitHub</div>
+        <div class="item__hint">1. Откройте GitHub → иконка профиля → <strong>Settings</strong><br>2. В левом меню: <strong>SSH and GPG keys</strong><br>3. Нажмите <strong>New SSH key</strong><br>4. Title: например, <span class="mono">OpenClaw VPS</span><br>5. Key type: <strong>Authentication Key</strong><br>6. Key: вставьте скопированную строку<br>7. Нажмите <strong>Add SSH key</strong><br>
+        <a href="https://github.com/settings/keys" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> github.com/settings/keys — страница SSH-ключей</a></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="ssh-test">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Проверить SSH-подключение</div>
+        <div class="item__hint">Вернитесь в терминал VPS и выполните:</div>
+        <div class="cmd-copy"><span class="cmd-copy__text" id="cmdSshTest">ssh -T git@github.com</span><button class="btn-copy" onclick="copyBlock('cmdSshTest',this)">📋 Скопировать</button></div>
+        <div class="item__hint">Если спросит «Are you sure you want to continue connecting?» — напишите <span class="mono">yes</span>.<br>Должно ответить: <strong>«Hi username! You've successfully authenticated»</strong></div>
+      </div>
+    </div>
+
+    <div class="note note--green">
+      <span class="note__icon">✅</span>
+      <span><strong>SSH настроен!</strong> OpenClaw теперь может клонировать репозитории, пушить файлы, коммитить и откатывать изменения. Переходим к GitHub CLI — он даст возможность создавать новые репозитории.</span>
+    </div>
+
+    <!-- ─── ЧАСТЬ 2: GITHUB CLI ─── -->
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Часть 2: GitHub CLI + токен</div>
+    </div>
+
+    <div class="note note--info">
+      <span class="note__icon">💡</span>
+      <span><strong>Зачем это нужно:</strong> SSH-ключ позволяет работать с файлами внутри существующих репозиториев, но <strong>не умеет создавать новые репозитории</strong> — это ограничение протокола Git. Для создания репозиториев, управления Pages и других операций с GitHub нужен <strong>GitHub CLI</strong> — официальная утилита от GitHub, которая работает через API.</span>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Шаг 1. Создать Personal Access Token (PAT)</strong> — это «пароль» для GitHub API. Создаётся на сайте GitHub, используется один раз при настройке.</p>
+    </div>
+
+    <div class="item" data-key="pat-create">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Создать Personal Access Token на GitHub</div>
+        <div class="item__hint">1. Откройте ссылку ниже (или: GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic))<br>2. Нажмите <strong>Generate new token</strong> → <strong>Generate new token (classic)</strong><br>3. GitHub попросит подтвердить пароль<br>4. Заполните:<br>&nbsp;&nbsp;&nbsp;• <strong>Note:</strong> <span class="mono">OpenClaw VPS</span> (название для себя)<br>&nbsp;&nbsp;&nbsp;• <strong>Expiration:</strong> <span class="mono">No expiration</span> (или 90 дней — тогда придётся обновлять)<br>&nbsp;&nbsp;&nbsp;• <strong>Scopes:</strong> поставьте галочки на <strong>repo</strong> (полный доступ к репозиториям) и <strong>delete_repo</strong> (удаление репо)<br>5. Нажмите <strong>Generate token</strong><br>6. <strong>Скопируйте токен!</strong> Он начинается с <span class="mono">ghp_</span> и показывается <strong>только один раз</strong>. Сохраните его в надёжное место.<br>
+        <a href="https://github.com/settings/tokens" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> github.com/settings/tokens — страница токенов</a></div>
+      </div>
+    </div>
+
+    <div class="note note--warn">
+      <span class="note__icon">⚠️</span>
+      <span><strong>Токен показывается только один раз!</strong> Если не скопировали — придётся создавать новый. Сохраните его в заметки или менеджер паролей.</span>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Шаг 2. Установить GitHub CLI на VPS</strong> — все команды выполняются на сервере (вы уже подключены по SSH).</p>
+    </div>
+
+    <div class="item" data-key="gh-install">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Установить GitHub CLI на VPS</div>
+        <div class="item__hint">Скопируйте и вставьте <strong>всю команду целиком</strong> в терминал VPS. Она установит GitHub CLI из официального репозитория:</div>
+        <div class="cmd-copy"><span class="cmd-copy__text" id="cmdGhInstall">curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null && sudo apt update && sudo apt install gh -y</span><button class="btn-copy" onclick="copyBlock('cmdGhInstall',this)">📋 Скопировать</button></div>
+        <div class="item__hint">Дождитесь завершения — это займёт 30–60 секунд.</div>
+      </div>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Шаг 3. Авторизовать GitHub CLI</strong> — подключаем токен, который создали на шаге 1.</p>
+    </div>
+
+    <div class="item" data-key="gh-auth">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Авторизовать GitHub CLI через токен</div>
+        <div class="item__hint">Замените <span class="mono">&lt;ВАШ_ТОКЕН&gt;</span> на токен, который скопировали (начинается с <span class="mono">ghp_</span>):</div>
+        <div class="cmd-copy"><span class="cmd-copy__text" id="cmdGhAuth">echo "<ВАШ_ТОКЕН>" | gh auth login --with-token</span><button class="btn-copy" onclick="copyBlock('cmdGhAuth',this)">📋 Скопировать</button></div>
+        <div class="item__hint">Если команда выполнилась без ошибок — авторизация успешна.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="gh-check">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Проверить авторизацию GitHub CLI</div>
+        <div class="cmd-copy"><span class="cmd-copy__text" id="cmdGhStatus">gh auth status</span><button class="btn-copy" onclick="copyBlock('cmdGhStatus',this)">📋 Скопировать</button></div>
+        <div class="item__hint">Должно показать: <strong>✓ Logged in to github.com account &lt;ваш_username&gt;</strong></div>
+      </div>
+    </div>
+
+    <div class="note note--alert">
+      <span class="note__icon">🔐</span>
+      <span><strong>Безопасность токена:</strong> PAT даёт полный доступ ко всем вашим репозиториям. Не делитесь им ни с кем. Если подозреваете утечку — сразу отзовите токен: GitHub → Settings → Tokens → <strong>Revoke</strong>. Токен хранится на вашем VPS, который защищён паролем — это безопасно.</span>
+    </div>
+
+    <!-- ─── ЧАСТЬ 3: ТЕСТ ─── -->
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Часть 3: Тестируем всё вместе</div>
+    </div>
+
+    <div class="item" data-key="test-push">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Тест SSH: OpenClaw пушит файл в существующий репозиторий</div>
+        <div class="item__hint">Отправьте промпт ниже боту в Telegram (OpenClaw):</div>
+      </div>
+    </div>
+
+    <div class="prompt-block">
+      <div class="prompt-block__title">📋 Промпт: тест SSH (push в репо)</div>
+      <div class="prompt-block__text" id="promptGitTest">Склонируй мой репозиторий git@github.com:<ВАШ_USERNAME>/sites.git
+и создай в нём файл index.html с простой страницей «Привет, мир!»,
+затем закоммить и запуш на GitHub.</div>
+      <button class="btn-copy" onclick="copyBlock('promptGitTest', this)">📋 Скопировать промпт</button>
+    </div>
+
+    <div class="note note--green">
+      <span class="note__icon">✅</span>
+      <span>Если после push вы видите файл <span class="mono">index.html</span> в репозитории на GitHub — SSH работает!</span>
+    </div>
+
+    <div class="item" data-key="test-create-repo">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Тест GitHub CLI: OpenClaw создаёт новый репозиторий</div>
+        <div class="item__hint">Отправьте промпт ниже боту в Telegram (OpenClaw):</div>
+      </div>
+    </div>
+
+    <div class="prompt-block">
+      <div class="prompt-block__title">📋 Промпт: тест GitHub CLI (создание репо)</div>
+      <div class="prompt-block__text" id="promptGhTest">Создай новый приватный репозиторий на GitHub с названием "test-openclaw",
+добавь в него файл README.md с текстом "Тестовый репозиторий от OpenClaw",
+закоммить и запуш.
+Используй команду gh repo create для создания репозитория.</div>
+      <button class="btn-copy" onclick="copyBlock('promptGhTest', this)">📋 Скопировать промпт</button>
+    </div>
+
+    <div class="note note--green">
+      <span class="note__icon">🎉</span>
+      <span>Если на GitHub появился новый репозиторий <span class="mono">test-openclaw</span> с файлом README.md — <strong>полный доступ настроен!</strong> OpenClaw теперь может сам создавать репозитории, пушить файлы, управлять Pages — всё через Telegram.</span>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Зачем это в будущем:</strong> когда вы создадите своего AI-агента (урок 6), его конфигурацию лучше хранить в отдельном репозитории на GitHub. Это бэкап: если OpenClaw что-то сломает в агенте — вы всегда можете откатить к рабочей версии. GitHub CLI позволяет OpenClaw самому создавать такие репозитории и поддерживать их актуальными.</p>
+    </div>
+
+    <!-- ─── ЧАСТЬ 4: GITHUB MCP ─── -->
+
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Часть 4: GitHub MCP</div>
+    </div>
+
+    <div class="note note--info">
+      <span class="note__icon">🔌</span>
+      <span><strong>Помните MCP из урока 3?</strong> Это «переходник», через который агент управляет внешним сервисом. Сейчас подключим официальный <strong>GitHub MCP</strong> — он даёт Claude Code и OpenClaw готовые структурные инструменты GitHub: issues, pull requests, ревью кода, поиск по репозиториям.</span>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Три инструмента — три уровня, не дублируют друг друга:</strong></p>
+      <p>— <strong>SSH-ключ</strong> → пуш, клон, коммит файлов в репозитории<br>— <strong>GitHub CLI (gh)</strong> → создание репозиториев и Pages из консоли сервера<br>— <strong>GitHub MCP</strong> → структурные инструменты GitHub (issues, PR, ревью, поиск) для Claude Code на компьютере и для агента OpenClaw</p>
+    </div>
+
+    <div class="note note--green">
+      <span class="note__icon">✨</span>
+      <span><strong>Хорошая новость:</strong> GitHub MCP — это удалённый сервер от GitHub. Никакого Docker и установки не нужно, подключается одной командой.</span>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Шаг 1. Подключить GitHub MCP в Claude Code (VS Code)</strong> — на вашем компьютере. Команда такая же по логике, как при подключении MCP в уроке 3.</p>
+    </div>
+
+    <div class="item" data-key="mcp-cc-add">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Добавить GitHub MCP в Claude Code</div>
+        <div class="item__hint">Откройте терминал в VS Code и выполните (одинаково на Mac и Windows):</div>
+        <div class="cmd-copy"><span class="cmd-copy__text" id="cmdMcpCcAdd">claude mcp add --transport http --scope user github https://api.githubcopilot.com/mcp/</span><button class="btn-copy" onclick="copyBlock('cmdMcpCcAdd',this)">📋 Скопировать</button></div>
+        <div class="item__hint"><span class="mono">--scope user</span> — MCP будет доступен во всех ваших проектах на этом компьютере, а не только в одном.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="mcp-cc-auth">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Авторизоваться через GitHub</div>
+        <div class="item__hint">1. Запустите Claude Code (команда <span class="mono">claude</span> или чат в VS Code)<br>2. Введите <span class="mono">/mcp</span><br>3. Выберите <strong>github</strong> → <strong>Authenticate</strong><br>4. Откроется браузер → войдите в свой GitHub → подтвердите доступ. Готово — токен вводить не нужно.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="mcp-cc-check">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Проверить подключение</div>
+        <div class="cmd-copy"><span class="cmd-copy__text" id="cmdMcpCcList">claude mcp list</span><button class="btn-copy" onclick="copyBlock('cmdMcpCcList',this)">📋 Скопировать</button></div>
+        <div class="item__hint">Должно показать <strong>✓ Connected · github</strong>. Теперь Claude Code умеет работать с вашим GitHub структурно.</div>
+      </div>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Шаг 2. Подключить GitHub MCP в OpenClaw — руками в терминал не лезем.</strong> Это делает ваш инженер — Claude Code. Он подключён к серверу ещё с урока 3 и знает OpenClaw по официальной документации (скилл <span class="mono">openclaw-docs</span>). Вы просто ставите задачу промптом.</p>
+    </div>
+
+    <div class="item" data-key="mcp-oc-prompt">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Поручить Claude Code подключить GitHub MCP в OpenClaw</div>
+        <div class="item__hint">Отправьте промпт ниже в Claude Code. Подставьте тот же PAT, что создали в Части 2:</div>
+      </div>
+    </div>
+
+    <div class="prompt-block">
+      <div class="prompt-block__title">📋 Промпт: GitHub MCP в OpenClaw (через Claude Code)</div>
+      <div class="prompt-block__text" id="promptOcMcp">Подключи официальный GitHub MCP к моему OpenClaw на сервере.
+Сначала сверься с документацией OpenClaw — открой скилл openclaw-docs, раздел про MCP (команда «openclaw mcp»).
+Подключись к серверу по SSH, как обычно.
+Параметры: эндпоинт https://api.githubcopilot.com/mcp/, транспорт streamable-http, авторизация заголовком «Authorization: Bearer <ВАШ_ТОКЕН>» (это мой PAT из Части 2).
+После установки проверь подключение и список инструментов, затем примени изменения, чтобы агент сразу их увидел.
+Если что-то пойдёт не так — остановись, объясни причину и почини сам.</div>
+      <button class="btn-copy" onclick="copyBlock('promptOcMcp', this)">📋 Скопировать промпт</button>
+    </div>
+
+    <div class="note note--alert">
+      <span class="note__icon">🔐</span>
+      <span><strong>Безопасность токена:</strong> это тот же PAT, что вы уже создали — отдельный заводить не нужно. Claude Code пропишет его в конфиг на вашем сервере; в логах OpenClaw токен маскируется. Если не хотите держать токен в конфиге — попросите Claude Code подключить через OAuth (вход в браузере) вместо заголовка.</span>
+    </div>
+
+    <div class="note note--green">
+      <span class="note__icon">🎉</span>
+      <span><strong>GitHub MCP подключён в обоих контурах!</strong> Теперь и Claude Code на компьютере, и агент OpenClaw в Telegram умеют не только пушить файлы, но и создавать issues, открывать pull requests, ревьюить код и искать по репозиториям.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     05 — ДОМЕН
+═══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <div class="section__num">05</div>
+    <div class="section__title">Покупка домена на Porkbun</div>
+  </div>
+  <div class="section__card">
+    <div class="note note--info">
+      <span class="note__icon">🌐</span>
+      <span><strong>Почему Porkbun:</strong> дешёвые домены, бесплатный WHOIS-прайваси (скрытие ваших данных), бесплатный SSL, удобный интерфейс.</span>
+    </div>
+
+    <div class="item" data-key="domain-buy">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Купить домен на Porkbun</div>
+        <div class="item__hint">Поиск → выбор зоны (<span class="mono">.com</span> — универсальный, <span class="mono">.site</span> — дешёвый, <span class="mono">.dev</span> — для техно) → оплата картой.<br>
+        <a href="https://porkbun.com" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> porkbun.com — купить домен</a></div>
+      </div>
+    </div>
+
+    <details class="spoiler">
+      <summary>📎 Альтернативные регистраторы</summary>
+      <div class="spoiler__content">
+        <p><strong>Namecheap</strong> — <a href="https://namecheap.com" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> namecheap.com</a> — классика, бесплатный WHOIS-прайваси.</p>
+        <p><strong>Reg.ru</strong> — <a href="https://reg.ru" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> reg.ru</a> — для оплаты рублями, но дороже.</p>
+      </div>
+    </details>
+
+    <!-- DNS настройка -->
+    <div class="info-block">
+      <p><strong>Настройка DNS для GitHub Pages</strong></p>
+      <p>После покупки домена нужно указать, что он должен вести на серверы GitHub Pages. Это делается через DNS-записи в панели управления Porkbun.</p>
+    </div>
+
+    <div class="item" data-key="dns-open">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Открыть управление DNS в Porkbun</div>
+        <div class="item__hint">1. Войдите в аккаунт Porkbun<br>2. Перейдите в <strong>Domain Management</strong> (управление доменами)<br>3. Найдите ваш домен → нажмите <strong>DNS</strong> (или иконку шестерёнки → DNS Records)<br>Вы окажетесь на странице, где можно добавлять и удалять DNS-записи.<br>
+        <a href="https://porkbun.com/account/domainsSpe498" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> porkbun.com/account — панель управления</a></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="dns-delete">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Удалить стандартные записи Porkbun</div>
+        <div class="item__hint">На странице DNS вы увидите уже готовые записи (parking page от Porkbun). <strong>Удалите их все</strong> — они будут мешать. Нажмите иконку удаления (🗑️) рядом с каждой записью.</div>
+      </div>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Теперь создаём новые записи.</strong> На той же странице DNS в Porkbun есть форма для добавления записей. Нужно создать <strong>5 записей</strong> (4 типа A + 1 типа CNAME) — по одной за раз.</p>
+    </div>
+
+    <div class="note note--info">
+      <span class="note__icon">📌</span>
+      <span><strong>Про IP-адреса в таблице ниже:</strong> это не ваши адреса. Это официальные фиксированные IP-адреса серверов GitHub Pages — одинаковые для всех пользователей GitHub в мире. Прописывайте их ровно как в таблице, ничего не меняйте. 4 адреса вместо одного — для надёжности: если один сервер упадёт, трафик пойдёт на другой.</span>
+    </div>
+
+    <details class="spoiler">
+      <summary>💡 Что такое A-запись и CNAME — простым языком</summary>
+      <div class="spoiler__content">
+        <p><strong>A-запись</strong> (Address Record) — самая базовая DNS-запись. Она говорит интернету: <strong>«этот домен → вот этот IP-адрес»</strong>. Когда кто-то вводит <span class="mono">mybusiness.com</span>, DNS смотрит A-записи и направляет браузер на сервер GitHub Pages. Мы создаём 4 штуки, потому что у GitHub 4 сервера — для отказоустойчивости.</p>
+        <p><strong>CNAME</strong> (Canonical Name) — запись-алиас. Она говорит: <strong>«этот поддомен — то же самое, что вон тот адрес»</strong>. Мы создаём CNAME для <span class="mono">www</span>, чтобы <span class="mono">www.mybusiness.com</span> тоже работал и вёл на ваш GitHub Pages. Без этой записи будет работать только <span class="mono">mybusiness.com</span> (без www).</p>
+      </div>
+    </details>
+
+    <table class="data-table">
+      <tr><th>Тип</th><th>Хост</th><th>Значение (Answer)</th></tr>
+      <tr><td>A</td><td>(оставить пустым)</td><td>185.199.108.153</td></tr>
+      <tr><td>A</td><td>(оставить пустым)</td><td>185.199.109.153</td></tr>
+      <tr><td>A</td><td>(оставить пустым)</td><td>185.199.110.153</td></tr>
+      <tr><td>A</td><td>(оставить пустым)</td><td>185.199.111.153</td></tr>
+      <tr><td>CNAME</td><td>www</td><td>username.github.io</td></tr>
+    </table>
+
+    <div class="item" data-key="dns-a">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Создать 4 A-записи</div>
+        <div class="item__hint">Для каждой A-записи: Type → <strong>A</strong>, Host → <strong>оставить пустым</strong>, Answer → <strong>IP-адрес из таблицы</strong>. Повторите 4 раза для каждого IP-адреса. Это адреса серверов GitHub Pages — они принимают трафик вашего домена.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="dns-cname">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Создать CNAME-запись для www</div>
+        <div class="item__hint">Type → <strong>CNAME</strong>, Host → <strong>www</strong>, Answer → <strong>username.github.io</strong> (замените <span class="mono">username</span> на ваш логин GitHub). Эта запись нужна, чтобы <span class="mono">www.ваш-домен.com</span> тоже работал.</div>
+      </div>
+    </div>
+
+    <div class="note note--warn">
+      <span class="note__icon">⚠️</span>
+      <span><strong>В CNAME-записи</strong> замените <span class="mono">username</span> на ваш реальный логин GitHub. Например, если ваш GitHub — <span class="mono">ivanov</span>, то Answer будет <span class="mono">ivanov.github.io</span>.</span>
+    </div>
+
+    <div class="note note--info">
+      <span class="note__icon">🔒</span>
+      <span><strong>HTTPS:</strong> ничего покупать не нужно. GitHub Pages сам выпустит бесплатный сертификат Let's Encrypt после привязки домена в следующем блоке. Нужно только подождать пропагации DNS.</span>
+    </div>
+
+    <div class="note note--warn">
+      <span class="note__icon">⏳</span>
+      <span><strong>DNS-пропагация</strong> обычно занимает 5–30 минут, иногда до 24 часов. Если домен не заработал сразу — это нормально, ждём.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     06 — GITHUB PAGES
+═══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <div class="section__num">06</div>
+    <div class="section__title">Подключение домена к GitHub Pages</div>
+  </div>
+  <div class="section__card">
+    <div class="item" data-key="pages-enable">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Включить GitHub Pages в Public-репозитории</div>
+        <div class="item__hint">Репозиторий → <strong>Settings</strong> → <strong>Pages</strong> → Source: <strong>Deploy from a branch</strong> → Branch: <span class="mono">main</span>, папка: <span class="mono">/ (root)</span> → <strong>Save</strong></div>
+      </div>
+    </div>
+
+    <div class="item" data-key="pages-domain">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Привязать свой домен</div>
+        <div class="item__hint">В том же разделе Pages → <strong>Custom domain</strong> → вписать свой домен (например, <span class="mono">mybusiness.com</span>) → <strong>Save</strong>. GitHub создаст файл <span class="mono">CNAME</span> в репозитории автоматически.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="pages-https">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Включить Enforce HTTPS</div>
+        <div class="item__hint">Поставить галочку <strong>Enforce HTTPS</strong> в настройках Pages. Если галочка неактивна — подождите, пока DNS пропагируется.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="pages-check">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Проверить сайт в браузере</div>
+        <div class="item__hint">Откройте <span class="mono">https://ваш-домен.com</span> — должна отобразиться страница из репозитория.</div>
+      </div>
+    </div>
+
+    <div class="note note--green">
+      <span class="note__icon">🎉</span>
+      <span>Если видите свою страницу по адресу с замочком 🔒 — поздравляем! GitHub Pages + домен + HTTPS работают.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     07 — СКИЛЛЫ
+═══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <div class="section__num">07</div>
+    <div class="section__title">Дизайнерские скиллы для крутых сайтов</div>
+  </div>
+  <div class="section__card">
+    <div class="note note--info">
+      <span class="note__icon">🎨</span>
+      <span>В уроке 3 мы ставили 4 инструмента (плагин Superpowers + 3 MCP: TaskMaster, Playwright, AgentMemory). Сейчас добавляем дизайнерские скиллы — они радикально поднимают качество создаваемых сайтов.</span>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Главный дизайн-скилл — frontend-design</strong> от Anthropic. Превращает агента в senior-дизайнера: смелая типографика, нестандартные лейауты, продакшн-качество. Без него — шаблон, с ним — уникальный сайт. Лежит в официальном репозитории <span class="mono">anthropics/skills</span>.</p>
+    </div>
+
+    <div class="note note--info">
+      <span class="note__icon">🛠️</span>
+      <span><strong>Скиллы ставим не руками, а через Claude Code.</strong> Claude Code — ваш инженер по OpenClaw: он знает платформу по документации (скилл <span class="mono">openclaw-docs</span> из урока 3) и подключён к серверу. Вы описываете задачу — он всё делает. В терминал руками лезть не нужно.</span>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Глобально или локально?</strong> Скилл — это папка с файлом <span class="mono">SKILL.md</span>. Куда он лёг — так и доступен. В промпте просто говорите «глобально» или «локально»:</p>
+    </div>
+
+    <table class="data-table">
+      <tr><th>Где</th><th>Глобально (везде)</th><th>Локально (точечно)</th></tr>
+      <tr><td>Claude&nbsp;Code</td><td><span class="mono">~/.claude/skills/</span> — во всех проектах</td><td><span class="mono">.claude/skills/</span> — только в этом проекте, едет в git</td></tr>
+      <tr><td>OpenClaw</td><td><span class="mono">~/.openclaw/skills/</span> — для всех агентов</td><td>папка <span class="mono">skills/</span> в воркспейсе одного агента</td></tr>
+    </table>
+
+    <!-- 1: Claude Code -->
+    <div class="info-block">
+      <p><strong>Шаг 1. Поставить frontend-design в Claude Code</strong> — ваш инструмент для вайб-кодинга на компьютере. Отправьте промпт в чат Claude Code.</p>
+    </div>
+
+    <div class="item" data-key="skill-cc-prompt">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Поручить Claude Code установить frontend-design себе</div>
+        <div class="item__hint">По умолчанию ставим <strong>глобально</strong> (во всех проектах). Нужно только в текущем — поменяйте на «локально» в промпте. После установки перезапустите VS Code.</div>
+      </div>
+    </div>
+
+    <div class="prompt-block">
+      <div class="prompt-block__title">📋 Промпт: frontend-design в Claude Code</div>
+      <div class="prompt-block__text" id="promptSkillCC">Установи себе дизайн-скилл frontend-design от Anthropic.
+Возьми его из официального репозитория anthropics/skills (папка frontend-design).
+Поставь глобально — в ~/.claude/skills/ — чтобы он был доступен во всех моих проектах.
+(Если нужно только для текущего проекта — поставь в .claude/skills/ вместо глобального.)
+После установки убедись, что SKILL.md на месте и скилл подхватился.</div>
+      <button class="btn-copy" onclick="copyBlock('promptSkillCC', this)">📋 Скопировать промпт</button>
+    </div>
+
+    <!-- 2: OpenClaw через Claude Code -->
+    <div class="info-block">
+      <p><strong>Шаг 2. Поставить frontend-design в OpenClaw</strong> — чтобы ваш Telegram-агент тоже делал красивые сайты. Снова через Claude Code: он сверится с документацией и всё сделает на сервере.</p>
+    </div>
+
+    <div class="item" data-key="skill-oc-prompt">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Поручить Claude Code установить frontend-design в OpenClaw</div>
+        <div class="item__hint">Отправьте промпт в Claude Code:</div>
+      </div>
+    </div>
+
+    <div class="prompt-block">
+      <div class="prompt-block__title">📋 Промпт: frontend-design в OpenClaw (через Claude Code)</div>
+      <div class="prompt-block__text" id="promptSkillOC">Установи дизайн-скилл frontend-design в мой OpenClaw на сервере.
+Сначала сверься с документацией OpenClaw — открой скилл openclaw-docs, раздел про скиллы и ClawHub (команды «openclaw skills»).
+Подключись к серверу по SSH. Скилл frontend-design возьми из репозитория anthropics/skills.
+Поставь глобально — для всех агентов (общая папка управляемых скиллов).
+(Если нужно только для одного агента — положи в папку skills/ его воркспейса.)
+После установки проверь, что OpenClaw видит скилл (openclaw skills list), и примени изменения.
+Если что-то пойдёт не так — остановись, объясни причину и почини сам.</div>
+      <button class="btn-copy" onclick="copyBlock('promptSkillOC', this)">📋 Скопировать промпт</button>
+    </div>
+
+    <details class="spoiler">
+      <summary>🌐 Поставить скилл и в Claude AI (claude.ai, веб)</summary>
+      <div class="spoiler__content">
+        <p>В веб-версии Claude скиллы подключаются глобально на уровне аккаунта: настройки (⚙️) → раздел <strong>Capabilities / Skills</strong> → <strong>Add skill</strong> → загрузите файл <span class="mono">SKILL.md</span> скилла из репозитория <a href="https://github.com/anthropics/skills" target="_blank" class="lnk" onclick="event.stopPropagation()">anthropics/skills</a>. После этого скилл доступен во всех диалогах и проектах.</p>
+      </div>
+    </details>
+
+    <!-- ─── BONUS: REFERO DESIGN ─── -->
+    <div class="section-divider">
+      <div class="section-divider__line"></div>
+      <div class="section-divider__title">Бонус: готовые дизайн-стили Refero</div>
+    </div>
+
+    <div class="note note--green">
+      <span class="note__icon">🎨</span>
+      <span><strong>Refero Styles</strong> — библиотека из 2000+ дизайн-систем, снятых с топовых продуктов (Apple, Vercel, Linear, Resend и других). Каждый стиль — это готовый файл <span class="mono">DESIGN.md</span> с палитрой, типографикой, отступами и компонентами, который «понимает» Claude Code.</span>
+    </div>
+
+    <div class="info-block">
+      <p><strong>Как пользоваться — 3 шага:</strong></p>
+      <p><strong>1.</strong> Откройте <a href="https://styles.refero.design/" target="_blank" class="lnk" onclick="event.stopPropagation()">styles.refero.design</a> и найдите подходящий стиль (вкладки Trending / Popular / Newest или поиск).<br>
+      <strong>2.</strong> Откройте карточку стиля и скопируйте его <span class="mono">DESIGN.md</span>.<br>
+      <strong>3.</strong> Отдайте этот <span class="mono">DESIGN.md</span> агенту: «Сделай лендинг для … в стиле из этого DESIGN.md» — и вставьте текст. Агент применит палитру, шрифты и отступы из выбранного стиля.</p>
+    </div>
+
+    <div class="item" data-key="refero-try">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Попробовать стиль из Refero на своём лендинге</div>
+        <div class="item__hint">Выберите стиль → скопируйте DESIGN.md → отдайте агенту вместе с задачей. Сравните результат с дизайном «по умолчанию».<br>
+        <a href="https://styles.refero.design/" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> styles.refero.design — библиотека DESIGN.md</a></div>
+      </div>
+    </div>
+
+    <details class="spoiler">
+      <summary>⚡ Для продвинутых: Refero MCP</summary>
+      <div class="spoiler__content">
+        <p>У Refero есть и <strong>официальный MCP-сервер</strong> — тогда агент сам ищет нужный стиль в библиотеке перед генерацией, без ручного копирования <span class="mono">DESIGN.md</span>. Требует аккаунт Refero (вход в браузере при первом вызове). Подключение — по инструкции на странице <a href="https://refero.design/mcp" target="_blank" class="lnk" onclick="event.stopPropagation()">refero.design/mcp</a>.</p>
+      </div>
+    </details>
+
+    <!-- Безопасность -->
+    <div class="note note--alert">
+      <span class="note__icon">🛡️</span>
+      <span><strong>Безопасность скиллов:</strong> скиллы — это код от сообщества. Не все из них безопасны. Правила перед установкой любого нового скилла:</span>
+    </div>
+
+    <div class="info-block">
+      <p><strong>1. Читайте SKILL.md перед установкой.</strong> Если дизайн-скилл просит доступ к вещам, не связанным с его функцией (файловая система, отправка данных наружу) — это 🚩 красный флаг.</p>
+      <p><strong>2. Проверяйте на ClawHub через VirusTotal.</strong> На странице скилла есть отчёт VirusTotal — автоматическая проверка на вредоносный код. Если помечено как risky — не ставьте.</p>
+      <p><strong>3. Смотрите репутацию.</strong> Кто автор, сколько звёзд на GitHub, когда последний коммит. Скилл от <span class="mono">anthropics</span> (Anthropic) — безопасен. Скилл от анонима с 0 звёзд — сомнителен.</p>
+      <p><strong>Наш frontend-design безопасен:</strong> официальный скилл от Anthropic (репозиторий <span class="mono">anthropics/skills</span>), генерирует только HTML/CSS. Это эталон надёжного источника.</p>
+      <p><strong>Правило: если сомневаетесь — не ставьте. Лучше спросите в чате группы.</strong></p>
+    </div>
+
+    <div class="res-block">
+      <div class="res-block__title">🔗 Ссылки для самостоятельного изучения</div>
+      <div class="res-block__sub">
+        <a href="https://clawhub.ai/" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> ClawHub — маркетплейс скиллов (13 700+)</a><br>
+        <a href="https://github.com/VoltAgent/awesome-openclaw-skills" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> Awesome-список 5 400+ скиллов</a><br>
+        <a href="https://docs.openclaw.ai/tools/skills" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> Документация по скиллам</a><br>
+        <a href="https://composio.dev/content/top-openclaw-skills" target="_blank" class="lnk" onclick="event.stopPropagation()"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M6.22 8.72a.75.75 0 0 0 1.06 1.06l5.22-5.22v2.69a.75.75 0 0 0 1.5 0V3a.75.75 0 0 0-.75-.75H9a.75.75 0 0 0 0 1.5h2.69L6.22 8.72Z"/><path d="M3.5 6.75c0-.69.56-1.25 1.25-1.25H7A.75.75 0 0 0 7 4H4.75A2.75 2.75 0 0 0 2 6.75v4.5A2.75 2.75 0 0 0 4.75 14h4.5A2.75 2.75 0 0 0 12 11.25V9a.75.75 0 0 0-1.5 0v2.25c0 .69-.56 1.25-1.25 1.25h-4.5c-.69 0-1.25-.56-1.25-1.25v-4.5Z"/></svg> Обзор лучших скиллов</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     08 — ПРАКТИКА
+═══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section__header">
+    <div class="section__num">08</div>
+    <div class="section__title">Практика: полный цикл — от идеи до сайта на домене</div>
+  </div>
+  <div class="section__card">
+    <div class="note note--info">
+      <span class="note__icon">🚀</span>
+      <span>Это кульминация урока. Проходим полный цикл: описываем идею → бот создаёт сайт → заливает на GitHub → сайт появляется на вашем домене.</span>
+    </div>
+
+    <div class="item" data-key="practice-create">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Создать лендинг через вайб-кодинг</div>
+        <div class="item__hint">В Claude или Claude Code: описываем словами, что хотим → получаем готовый HTML. Пробуем разные варианты: лендинг для бизнеса, портфолио, таблица, обратный отсчёт.</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="practice-deploy">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Задеплоить через OpenClaw в Telegram</div>
+        <div class="item__hint">Отправляем промпт ниже боту — он создаст лендинг с использованием дизайнерских скиллов и зальёт на GitHub Pages.</div>
+      </div>
+    </div>
+
+    <div class="prompt-block">
+      <div class="prompt-block__title">📋 Промпт: создать и задеплоить лендинг</div>
+      <div class="prompt-block__text" id="promptDeploy">Создай красивый лендинг для <ОПИШИТЕ СВОЙ БИЗНЕС/ПРОДУКТ>.
+Используй скилл frontend-design для уникального дизайна.
+Результат — один файл index.html.
+Залей его в мой репозиторий git@github.com:<ВАШ_USERNAME>/sites.git на GitHub.
+Закоммить и запуш.</div>
+      <button class="btn-copy" onclick="copyBlock('promptDeploy', this)">📋 Скопировать промпт</button>
+    </div>
+
+    <div class="item" data-key="practice-check">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Проверить сайт на своём домене</div>
+        <div class="item__hint">Откройте <span class="mono">https://ваш-домен.com</span> — должен отобразиться ваш лендинг с замочком 🔒</div>
+      </div>
+    </div>
+
+    <div class="item" data-key="practice-iterate">
+      <div class="item__check"><input type="checkbox"><span class="cm"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#0a0a0f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      <div class="item__body">
+        <div class="item__text">Внести правки через разговор с ботом</div>
+        <div class="item__hint">Попробуйте: «Добавь секцию с отзывами», «Поменяй цвета на тёмную тему», «Сделай мобильную адаптацию лучше». Агент правит → пушит → сайт обновляется.</div>
+      </div>
+    </div>
+
+    <div class="note note--green">
+      <span class="note__icon">💡</span>
+      <span><strong>На будущее:</strong><br>• Черновики сайтов держите в приватном репозитории, наружу выкладывайте только готовое.<br>• После смены DNS дайте ему до 30 минут, прежде чем решить, что что-то сломалось.<br>• Удачные промпты для сайтов и дизайнов складывайте в отдельные заметки или скиллы. Когда накопится много решений, новые сайты под свои задачи будете собирать заметно быстрее.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FOOTER ═══ -->
+<div class="footer">
+  <div class="footer__done" id="doneBlock">
+    <div class="footer__done-emoji">🌐</div>
+    <div class="footer__done-text">Сайт на вашем домене!</div>
+    <div class="footer__done-sub">GitHub, домен, скиллы, полный pipeline — всё работает. Увидимся на встрече!</div>
+  </div>
+  <div class="footer__final-part3">
+    <div class="footer__final-emoji">🌐</div>
+    <div class="footer__final-text">Урок 4 пройден!</div>
+    <div class="footer__final-sub">У вас свой сайт на собственном домене: GitHub Pages, HTTPS, собран одним диалогом, без единой строчки кода руками. Теперь вы публикуете лендинги сами, когда захотите.</div>
+  </div>
+  <div class="footer__contact">Возникли вопросы? Напишите <a href="https://t.me/stavzzz" target="_blank" class="tg">@stavzzz</a> в&nbsp;Telegram</div>
+  <button class="btn-reset" onclick="resetProgress()">Сбросить прогресс</button>
+</div>
+
+</div><!-- /wrapper -->
+
+<script>
+const C=document.getElementById('confetti-canvas'),ctx=C.getContext('2d');
+let particles=[],confettiActive=false;
+function resizeCanvas(){C.width=window.innerWidth;C.height=window.innerHeight;}
+window.addEventListener('resize',resizeCanvas);resizeCanvas();
+const COLORS=['#7c5bf5','#9d7cff','#34d399','#6ee7b7','#fbbf24','#f87171','#fb7185','#38bdf8','#facc15','#a78bfa','#f472b6','#4ade80'];
+function rand(a,b){return Math.random()*(b-a)+a;}
+function createBurst(x,y,count){for(let i=0;i<count;i++){const angle=rand(0,Math.PI*2),speed=rand(4,14),size=rand(4,10);particles.push({x,y,vx:Math.cos(angle)*speed+rand(-2,2),vy:Math.sin(angle)*speed*-0.8-rand(2,6),size,color:COLORS[Math.floor(Math.random()*COLORS.length)],rotation:rand(0,Math.PI*2),rotSpeed:rand(-0.2,0.2),gravity:rand(0.12,0.25),friction:rand(0.97,0.995),opacity:1,fadeSpeed:rand(0.005,0.015),shape:Math.random()>0.4?'rect':'circle'});}}
+function launchConfetti(){if(confettiActive)return;confettiActive=true;particles=[];const W=C.width,H=C.height;[[W*.5,H*.3,120],[W*.15,H*.2,80],[W*.85,H*.2,80],[W*.5,H*.1,100],[W*.3,H*.5,60],[W*.7,H*.5,60],[0,H*.6,50],[W,H*.6,50],[W*.5,H*.6,80]].forEach(([x,y,c],i)=>{setTimeout(()=>createBurst(x,y,c),i*150)});setTimeout(()=>{createBurst(W*.2,H*.15,90);createBurst(W*.8,H*.15,90);createBurst(W*.5,H*.05,100)},1500);setTimeout(()=>{createBurst(W*.5,H*.25,120);createBurst(W*.1,H*.4,60);createBurst(W*.9,H*.4,60)},2500);animate();setTimeout(()=>{confettiActive=false},8000);}
+function animate(){ctx.clearRect(0,0,C.width,C.height);for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.vx*=p.friction;p.vy*=p.friction;p.vy+=p.gravity;p.x+=p.vx;p.y+=p.vy;p.rotation+=p.rotSpeed;p.opacity-=p.fadeSpeed;if(p.opacity<=0){particles.splice(i,1);continue}ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rotation);ctx.globalAlpha=p.opacity;ctx.fillStyle=p.color;if(p.shape==='rect'){ctx.fillRect(-p.size/2,-p.size/4,p.size,p.size/2)}else{ctx.beginPath();ctx.arc(0,0,p.size/2,0,Math.PI*2);ctx.fill()}ctx.restore();}if(particles.length>0||confettiActive){requestAnimationFrame(animate)}else{ctx.clearRect(0,0,C.width,C.height);}}
+const STORAGE_KEY='iivizaciya_checklist_urok4_v1';
+const items=document.querySelectorAll('.item[data-key]');
+const totalCount=items.length;
+let wasComplete=false;
+function loadState(){try{const s=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');let c=0;items.forEach(item=>{const cb=item.querySelector('input[type="checkbox"]');if(s[item.dataset.key]){cb.checked=true;item.classList.add('checked');c++}});wasComplete=c===totalCount}catch(e){}updateProgress(false);}
+function saveState(){const s={};items.forEach(item=>{s[item.dataset.key]=item.querySelector('input[type="checkbox"]').checked});try{localStorage.setItem(STORAGE_KEY,JSON.stringify(s))}catch(e){}}
+function updateProgress(canCelebrate=true){let c=0;items.forEach(item=>{if(item.querySelector('input[type="checkbox"]').checked)c++});document.getElementById('progressCount').textContent=`${c} / ${totalCount}`;document.getElementById('progressFill').style.width=(totalCount>0?(c/totalCount)*100:0)+'%';const done=document.getElementById('doneBlock');if(c===totalCount){done.classList.add('visible');if(canCelebrate&&!wasComplete){launchConfetti()}wasComplete=true}else{done.classList.remove('visible');wasComplete=false;}}
+items.forEach(item=>{
+  const cb=item.querySelector('input[type="checkbox"]');
+  cb.addEventListener('change',function(){item.classList.toggle('checked',this.checked);saveState();updateProgress(true);});
+});
+function resetProgress(){if(!confirm('Сбросить весь прогресс?'))return;items.forEach(item=>{const cb=item.querySelector('input[type="checkbox"]');cb.checked=false;item.classList.remove('checked')});wasComplete=false;saveState();updateProgress(false);}
+loadState();
+
+function copyBlock(id, btn){
+  const text=document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(()=>{
+    const orig=btn.innerHTML;
+    btn.classList.add('copied');
+    btn.innerHTML='✅ Скопировано!';
+    setTimeout(()=>{btn.classList.remove('copied');btn.innerHTML=orig;},2000);
+  });
+}
+</script>
+</body>
+</html>
