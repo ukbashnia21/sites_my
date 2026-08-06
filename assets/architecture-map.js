@@ -21,12 +21,33 @@
   const questionDetail = document.getElementById("question-detail");
   const toolkitGrid = document.getElementById("toolkit-grid");
   const promptGrid = document.getElementById("prompt-grid");
+  const potokAuditDataElement = document.getElementById("potok-audit-data");
+  const potokAuditData = (() => {
+    if (!potokAuditDataElement) return { generated_at: null, window_days: 7, audits: [], incidents: [] };
+    try {
+      const parsed = JSON.parse(potokAuditDataElement.textContent);
+      return parsed && Array.isArray(parsed.audits) && Array.isArray(parsed.incidents)
+        ? parsed
+        : { generated_at: null, window_days: 7, audits: [], incidents: [] };
+    } catch (_) {
+      return { generated_at: null, window_days: 7, audits: [], incidents: [] };
+    }
+  })();
+  const potokAuditMetrics = document.getElementById("potok-audit-metrics");
+  const potokModelRanking = document.getElementById("potok-model-ranking");
+  const potokAuditModels = document.getElementById("potok-audit-models");
+  const potokAuditList = document.getElementById("potok-audit-list");
+  const potokErrorList = document.getElementById("potok-error-list");
+  const potokAuditFreshness = document.getElementById("potok-audit-freshness");
+  const potokAuditReviewer = document.getElementById("potok-audit-reviewer");
   let activeRoute = model.routes[0].id;
   let selectedNode = null;
   let activeQuestion = model.questions[0].id;
   let activeSystem = model.course_systems[0].id;
   let activeAuditCategory = model.audit_categories[0].id;
   let activeAuditProject = model.audit_projects[0].id;
+  let activePotokPeriod = "7d";
+  let activePotokReviewer = "all";
 
   const escapeHtml = (value) => String(value)
     .replaceAll("&", "&amp;")
@@ -134,17 +155,20 @@
   }
 
   function renderLessons() {
-    lessonGrid.innerHTML = model.lessons.map((lesson) => `
+    if (!lessonGrid) return;
+    lessonGrid.innerHTML = model.lessons.map((lesson) => {
+      const actions = [];
+      if (lesson.html_href) actions.push(`<a href="${escapeHtml(lesson.html_href)}">Открыть HTML</a>`);
+      if (lesson.href && lesson.href !== lesson.html_href) actions.push(`<a href="${escapeHtml(lesson.href)}">Открыть Markdown</a>`);
+      return `
       <article class="lesson">
         <span class="lesson__number">${escapeHtml(lesson.number)}</span>
         <h3>${escapeHtml(lesson.title)}</h3>
         <p>${escapeHtml(lesson.theme)}</p>
-        <div class="lesson__actions">
-          <a href="${escapeHtml(lesson.html_href)}">Открыть HTML</a>
-          <a href="${escapeHtml(lesson.href)}">Открыть Markdown</a>
-        </div>
+        ${actions.length ? `<div class="lesson__actions">${actions.join("")}</div>` : ""}
       </article>
-    `).join("");
+    `;
+    }).join("");
   }
 
   function renderCourseSystems() {
@@ -163,8 +187,10 @@
     if (!system) return;
     const chapterLinks = system.chapters.map((chapter) => {
       const lesson = chapter.lesson ? model.lessons.find((item) => item.number === chapter.lesson) : null;
-      const href = chapter.external_href || `${lesson.html_href}${chapter.anchor ? `#${chapter.anchor}` : ""}`;
-      return `<a href="${escapeHtml(href)}"${chapter.external_href ? ' target="_blank" rel="noopener"' : ""}><span>${escapeHtml(chapter.lesson ? `Урок ${chapter.lesson}` : "Источник")}</span>${escapeHtml(chapter.label)}</a>`;
+      const base = chapter.external_href || (lesson && lesson.html_href ? `${lesson.html_href}${chapter.anchor ? `#${chapter.anchor}` : ""}` : null);
+      const inner = `<span>${escapeHtml(chapter.lesson ? `Урок ${chapter.lesson}` : "Источник")}</span>${escapeHtml(chapter.label)}`;
+      if (!base) return `<span class="chapter-links__plain">${inner}</span>`;
+      return `<a href="${escapeHtml(base)}"${chapter.external_href ? ' target="_blank" rel="noopener"' : ""}>${inner}</a>`;
     }).join("");
     courseSystemDetail.innerHTML = `
       <div class="course-system-detail__intro">
@@ -204,8 +230,12 @@
     auditProject.innerHTML = model.audit_projects.map((project) => `<option value="${escapeHtml(project.id)}"${project.id === activeAuditProject ? " selected" : ""}>${escapeHtml(project.label)}</option>`).join("");
   }
 
+  function verifiabilityLabel(value) {
+    return { machine: "машинная", hybrid: "гибридная", human: "решение владельца" }[value] || value;
+  }
+
   function renderAuditFilters() {
-    const filters = [{ id: "all", number: "00", label: "Все 35" }, ...model.audit_categories];
+    const filters = [{ id: "all", number: "00", label: `Все ${model.audit_items.length}` }, ...model.audit_categories];
     auditFilters.innerHTML = filters.map((category) => `
       <button type="button" class="audit-filter${category.id === activeAuditCategory ? " is-active" : ""}" data-audit-filter="${escapeHtml(category.id)}">
         <span>${escapeHtml(category.number)}</span>${escapeHtml(category.label)}
@@ -225,7 +255,7 @@
         <article class="audit-item audit-item--${escapeHtml(value.status)}" id="audit-${escapeHtml(item.id)}">
           <div class="audit-item__heading">
             <span>${escapeHtml(item.id)}</span>
-            <div><small>${escapeHtml(category.label)} · ${escapeHtml(item.cadence)}</small><h3>${escapeHtml(item.title)}</h3></div>
+            <div><small>${escapeHtml(category.label)} · ${escapeHtml(item.cadence)} · ${escapeHtml(item.layer === "advanced" ? "advanced" : "база")} · ${escapeHtml(verifiabilityLabel(item.verifiability))}</small><h3>${escapeHtml(item.title)}</h3></div>
             <select data-audit-status="${escapeHtml(item.id)}" aria-label="Статус ${escapeHtml(item.title)}">
               <option value="unchecked"${value.status === "unchecked" ? " selected" : ""}>Не проверено</option>
               <option value="pass"${value.status === "pass" ? " selected" : ""}>Пройдено</option>
@@ -235,7 +265,7 @@
             </select>
           </div>
           <p>${escapeHtml(item.question)}</p>
-          <div class="audit-item__evidence"><span>Evidence</span><p>${escapeHtml(item.evidence)}</p></div>
+          <div class="audit-item__evidence"><span>Evidence</span><p>${escapeHtml(item.expected_evidence)}</p></div>
           <label>Комментарий или ссылка на доказательство
             <input type="text" data-audit-note="${escapeHtml(item.id)}" value="${escapeHtml(value.note || "")}" placeholder="Хранится только в этом браузере">
           </label>
@@ -267,7 +297,7 @@
         const mark = value.status === "pass" || value.status === "na" ? "x" : " ";
         lines.push(`- [${mark}] **${item.id} ${item.title}** — ${labels[value.status]}`);
         lines.push(`  - Проверка: ${item.question}`);
-        lines.push(`  - Evidence: ${item.evidence}`);
+        lines.push(`  - Evidence: ${item.expected_evidence}`);
         if (value.note) lines.push(`  - Комментарий: ${value.note}`);
       });
       lines.push("");
@@ -343,6 +373,290 @@
     `).join("");
   }
 
+  const potokVerdictLabel = (verdict) => ({
+    PASS: "PASS",
+    PASS_WITH_NOTES: "PASS с замечаниями",
+    NEEDS_FIX: "Нужны исправления",
+    INCONCLUSIVE: "Нет результата"
+  }[verdict] || verdict || "Нет результата");
+
+  const potokContourLabel = (contour) => ({
+    potok: "Поток",
+    knowledge: "База знаний",
+    agents: "Агенты",
+    automation: "Автоматизация",
+    other: "Прочее"
+  }[contour] || "Прочее");
+
+  const potokErrorLabel = (error) => ({
+    "auth-wait": "ожидание авторизации",
+    authentication: "авторизация",
+    "input-size": "слишком большой вход",
+    "source-changed": "источник изменился",
+    timeout: "лимит времени",
+    permission: "права доступа",
+    sandbox: "песочница",
+    network: "сеть",
+    "os-error": "системная ошибка ОС",
+    "process-exit": "аварийное завершение",
+    "acp-response": "сбой ответа Kimi ACP",
+    "acp-eof": "обрыв Kimi ACP",
+    auditerror: "ошибка адаптера",
+    codexreturncode: "сбой Codex reviewer"
+  }[error] || error || "нет");
+
+  const potokReviewerLabel = (reviewer) => ({
+    claude: "Claude",
+    kimi: "Kimi",
+    codex: "Codex"
+  }[reviewer] || "Система");
+
+  const potokFocusLabel = (focus) => ({
+    parallelism: "Параллельная работа reviewers",
+    isolation: "Изоляция и границы записи",
+    authorization: "Авторизация моделей",
+    backup: "Бэкап и восстановление",
+    deployment: "Deploy и выпуск",
+    search: "Поиск и зеркала",
+    knowledge: "Second Brain",
+    telegram: "Telegram-контур",
+    general: "Общая техническая приёмка"
+  }[focus] || "Общая техническая приёмка");
+
+  function potokSafeValue(value, verdict) {
+    const numeric = Number(value);
+    if ([1, 5, 7, 9].includes(numeric)) return numeric;
+    return { NEEDS_FIX: 9, PASS_WITH_NOTES: 7, PASS: 5, INCONCLUSIVE: 1 }[verdict] || 1;
+  }
+
+  function potokNormalizeRow(row) {
+    const source = row && typeof row === "object" ? row : {};
+    const candidate = String(source.verdict || "INCONCLUSIVE").toUpperCase();
+    const verdict = ["PASS", "PASS_WITH_NOTES", "NEEDS_FIX", "INCONCLUSIVE"].includes(candidate)
+      ? candidate
+      : "INCONCLUSIVE";
+    const duration = Number(source.duration_seconds);
+    return {
+      ...source,
+      reviewer: ["claude", "kimi", "codex"].includes(source.reviewer) ? source.reviewer : "system",
+      verdict,
+      duration_seconds: Number.isFinite(duration) && duration >= 0 ? duration : null,
+      value_score: potokSafeValue(null, verdict),
+      value_reason: typeof source.value_reason === "string" && source.value_reason
+        ? source.value_reason
+        : "Результат не классифицирован"
+    };
+  }
+
+  const potokReviewerRows = (audit) => (Array.isArray(audit?.reviewers) ? audit.reviewers : []).map(potokNormalizeRow);
+
+  function potokDayKey(value) {
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return "";
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Europe/Moscow", year: "numeric", month: "2-digit", day: "2-digit"
+    }).format(date);
+  }
+
+  function potokInPeriod(value, period) {
+    const date = new Date(value);
+    const anchor = new Date(potokAuditData.generated_at);
+    if (!Number.isFinite(date.getTime()) || !Number.isFinite(anchor.getTime())) return false;
+    if (period === "today") return potokDayKey(date) === potokDayKey(anchor);
+    if (period === "yesterday") return potokDayKey(date) === potokDayKey(new Date(anchor.getTime() - 86400000));
+    const days = Math.max(1, Number(potokAuditData.window_days) || 7);
+    return date >= new Date(anchor.getTime() - days * 86400000) && date <= anchor;
+  }
+
+  function potokDuration(seconds) {
+    if (!Number.isFinite(seconds)) return "—";
+    const value = Math.max(0, Math.round(seconds));
+    if (value < 60) return `${value} сек`;
+    const minutes = Math.floor(value / 60);
+    const rest = value % 60;
+    return rest ? `${minutes} мин ${rest} сек` : `${minutes} мин`;
+  }
+
+  function potokDate(value) {
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return "—";
+    return new Intl.DateTimeFormat("ru-RU", {
+      timeZone: "Europe/Moscow", year: "2-digit", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"
+    }).format(date);
+  }
+
+  function potokMedian(values) {
+    const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
+    if (!sorted.length) return null;
+    const middle = Math.floor(sorted.length / 2);
+    return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+  }
+
+  function filteredPotokData(reviewer = activePotokReviewer) {
+    const audits = (potokAuditData.audits || []).filter((audit) => (
+      potokInPeriod(audit.completed_at, activePotokPeriod)
+      && (reviewer === "all" || potokReviewerRows(audit).some((row) => row.reviewer === reviewer))
+    ));
+    const incidents = (potokAuditData.incidents || []).filter((incident) => (
+      potokInPeriod(incident.occurred_at, activePotokPeriod)
+      && (reviewer === "all" || incident.reviewer === reviewer)
+    ));
+    const reviewerRows = audits.flatMap((audit) => potokReviewerRows(audit)
+      .filter((row) => reviewer === "all" || row.reviewer === reviewer)
+      .map((row) => ({ ...row, auditId: audit.id })));
+    return { audits, incidents, reviewerRows };
+  }
+
+  function renderPotokMetrics(data) {
+    const usable = data.reviewerRows.filter((row) => row.verdict !== "INCONCLUSIVE").length;
+    const seconds = data.reviewerRows.reduce((sum, row) => sum + (row.duration_seconds || 0), 0);
+    const averageValue = data.reviewerRows.length
+      ? data.reviewerRows.reduce((sum, row) => sum + row.value_score, 0) / data.reviewerRows.length
+      : 0;
+    potokAuditMetrics.innerHTML = [
+      [data.audits.length, "аудитов"],
+      [`${usable}/${data.reviewerRows.length}`, "пригодных результатов"],
+      [potokDuration(seconds), "времени моделей"],
+      [averageValue ? averageValue.toFixed(1) : "—", "средняя ценность / 9"],
+      [data.incidents.length, "инцидентов в техжурнале"]
+    ].map(([value, label]) => `<div><strong>${escapeHtml(value)}</strong><span>${escapeHtml(label)}</span></div>`).join("");
+  }
+
+  function renderPotokModels(data) {
+    if (activePotokReviewer === "codex") {
+      potokAuditModels.innerHTML = `<section class="potok-models__journal-only">
+        <div><strong>Codex</strong><span>только технический журнал</span></div>
+        <p>Codex не является reviewer в этих парных аудитах. Фильтр показывает только системные инциденты, зафиксированные Codex.</p>
+      </section>`;
+      return;
+    }
+    const reviewers = activePotokReviewer === "all" ? ["claude", "kimi"] : [activePotokReviewer];
+    potokAuditModels.innerHTML = reviewers.map((reviewer) => {
+      const rows = data.reviewerRows.filter((row) => row.reviewer === reviewer);
+      const median = potokMedian(rows.map((row) => row.duration_seconds));
+      const useful = rows.filter((row) => row.verdict !== "INCONCLUSIVE").length;
+      const version = rows.find((row) => row.model_version)?.model_version || "unknown";
+      return `<section>
+        <div><strong>${escapeHtml(potokReviewerLabel(reviewer))}</strong><span>${escapeHtml(version)}</span></div>
+        <dl>
+          <div><dt>Медиана</dt><dd>${potokDuration(median)}</dd></div>
+          <div><dt>Результат</dt><dd>${useful}/${rows.length}</dd></div>
+          <div><dt>NEEDS_FIX</dt><dd>${rows.filter((row) => row.verdict === "NEEDS_FIX").length}</dd></div>
+          <div><dt>Нет результата</dt><dd>${rows.filter((row) => row.verdict === "INCONCLUSIVE").length}</dd></div>
+        </dl>
+      </section>`;
+    }).join("");
+  }
+
+  function potokModelStats(data, reviewer) {
+    const rows = data.reviewerRows.filter((row) => row.reviewer === reviewer);
+    const usable = rows.filter((row) => row.verdict !== "INCONCLUSIVE").length;
+    const median = potokMedian(rows.map((row) => row.duration_seconds));
+    const incidents = data.incidents.filter((item) => item.reviewer === reviewer).length;
+    const runErrors = rows.filter((row) => row.error_class).length;
+    const uniqueStops = data.audits.filter((audit) => {
+      const reviewers = Object.fromEntries(potokReviewerRows(audit).map((row) => [row.reviewer, row]));
+      const current = reviewers[reviewer];
+      const other = reviewers[reviewer === "claude" ? "kimi" : "claude"];
+      return current?.verdict === "NEEDS_FIX" && other?.verdict !== "NEEDS_FIX";
+    }).length;
+    return { reviewer, rows, usable, median, incidents, runErrors, uniqueStops };
+  }
+
+  function renderPotokRanking(data) {
+    if (!potokModelRanking) return;
+    const stats = [potokModelStats(data, "claude"), potokModelStats(data, "kimi")];
+    const medians = stats.map((item) => item.median).filter((value) => Number.isFinite(value) && value > 0);
+    const fastest = medians.length ? Math.min(...medians) : null;
+    stats.forEach((item) => {
+      const total = Math.max(1, item.rows.length);
+      const completion = item.usable / total;
+      const speed = Number.isFinite(item.median) && fastest ? Math.min(1, fastest / item.median) : 0;
+      const stability = Math.max(0, 1 - item.runErrors / total);
+      item.rating = Math.round((completion * 6 + speed * 2 + stability * 2) * 10) / 10;
+    });
+    const ordered = [...stats].sort((a, b) => b.rating - a.rating);
+    const kimi = stats.find((item) => item.reviewer === "kimi");
+    const kimiDecision = kimi.rows.length && kimi.usable / kimi.rows.length >= 0.75 && kimi.uniqueStops > 0
+      ? `<strong>Kimi не лишний шум.</strong> Оставить быстрым вторым reviewer: ${kimi.uniqueStops} уникальный stop-сигнал, медиана ${potokDuration(kimi.median)}. Из-за ${kimi.incidents} технических инцидентов Kimi не должна одна открывать или закрывать gate.`
+      : `<strong>Kimi пока не доказала обязательную ценность.</strong> Не делать её gate-owner; оставить опциональной до подтверждённых независимых находок.`;
+    potokModelRanking.innerHTML = `<div class="potok-ranking__heading">
+        <div><p class="eyebrow">Общий рейтинг reviewer-моделей</p><h3>${escapeHtml(potokReviewerLabel(ordered[0].reviewer))} лидирует по операционной надёжности</h3></div>
+        <p>${kimiDecision}</p>
+      </div>
+      <div class="potok-ranking__scores">${ordered.map((item, index) => `<section>
+        <span>${index + 1}</span><div><strong>${escapeHtml(potokReviewerLabel(item.reviewer))}</strong><small>${item.usable}/${item.rows.length} пригодных · ${item.uniqueStops} уникальных stop-сигналов · ${item.runErrors} сбоев в аудитах · ${item.incidents} событий в техжурнале</small></div><b>${item.rating.toFixed(1)}<small>/10</small></b>
+      </section>`).join("")}</div>
+      <p class="potok-ranking__note">Рейтинг операционный, не интеллектуальный. Уникальный stop-сигнал показывает независимый вклад, но считается качественной находкой только после человеческой приёмки.</p>`;
+  }
+
+  function renderPotokAudits(data) {
+    if (!data.audits.length) {
+      potokAuditList.innerHTML = activePotokReviewer === "codex"
+        ? '<p class="potok-empty">Codex не выполнял эти парные аудиты. Ниже показаны только его записи в техническом журнале.</p>'
+        : '<p class="potok-empty">За выбранный период аудитов нет.</p>';
+      return;
+    }
+    potokAuditList.innerHTML = data.audits.map((audit) => {
+      const rows = potokReviewerRows(audit).filter((row) => activePotokReviewer === "all" || row.reviewer === activePotokReviewer);
+      const errors = rows.map((row) => row.error_class).filter(Boolean);
+      const selectedRow = activePotokReviewer === "all" ? null : rows[0];
+      const displayedSeconds = selectedRow ? selectedRow.duration_seconds : audit.wall_seconds;
+      const displayedVerdict = String(selectedRow ? selectedRow.verdict : audit.outcome || "INCONCLUSIVE");
+      const displayedValue = potokSafeValue(selectedRow ? selectedRow.value_score : audit.value_score, displayedVerdict);
+      const displayedReason = selectedRow ? selectedRow.value_reason : audit.value_reason;
+      return `<article class="potok-audit-row" id="potok-${escapeHtml(audit.id)}">
+        <div data-label="Проверка"><strong>${escapeHtml(audit.id)}</strong><small>${potokDate(audit.completed_at)}${audit.parallel && !selectedRow ? " · параллельно" : ""}</small><a class="potok-audit-link" href="#potok-${escapeHtml(audit.id)}" data-potok-audit-link="${escapeHtml(audit.id)}">Открыть разбор</a></div>
+        <div data-label="Контур"><span class="potok-contour">${escapeHtml(potokContourLabel(audit.contour))}</span></div>
+        <div class="potok-review-results" data-label="Результаты моделей">${rows.map((row) => `
+          <span class="potok-verdict potok-verdict--${escapeHtml(String(row.verdict || "INCONCLUSIVE").toLowerCase())}">
+            <b>${escapeHtml(row.model || potokReviewerLabel(row.reviewer))}</b>${escapeHtml(potokVerdictLabel(row.verdict || "INCONCLUSIVE"))}<small>${potokDuration(row.duration_seconds)} · ${row.value_score}/9</small>
+          </span>`).join("")}</div>
+        <div data-label="Время"><strong>${potokDuration(displayedSeconds)}</strong><small>${selectedRow ? "выбранная модель" : audit.parallel ? "общее по стене" : "последовательно"}</small></div>
+        <div data-label="Ценность"><span class="potok-value potok-value--${escapeHtml(displayedValue)}">${escapeHtml(displayedValue)}/9</span><small>${selectedRow ? escapeHtml(potokReviewerLabel(selectedRow.reviewer)) : "Итог пары"}: ${escapeHtml(displayedReason || "Результат не классифицирован")}</small></div>
+        <div data-label="Ошибка">${errors.length ? errors.map((error) => `<span class="potok-error">${escapeHtml(potokErrorLabel(error))}</span>`).join("") : '<span class="potok-ok">нет</span>'}</div>
+        <details class="potok-audit-detail" data-potok-audit-detail="${escapeHtml(audit.id)}">
+          <summary>Кому поставлена оценка и за что</summary>
+          <div class="potok-audit-detail__body">
+            <p><strong>Что проверяли:</strong> ${escapeHtml(potokFocusLabel(audit.focus))}. <strong>Итог пары:</strong> ${escapeHtml(potokVerdictLabel(audit.outcome || "INCONCLUSIVE"))}, ${escapeHtml(audit.value_score)}/9 — ${escapeHtml(audit.value_reason || "Результат не классифицирован")}.</p>
+            <div>${rows.map((row) => `<section><strong>${escapeHtml(row.model || potokReviewerLabel(row.reviewer))} · ${row.value_score}/9</strong><span>${escapeHtml(potokVerdictLabel(row.verdict))} · ${potokDuration(row.duration_seconds)}</span><p>${escapeHtml(row.value_reason)}</p></section>`).join("")}</div>
+            <small>Публичная карточка показывает только метаданные. Полный текст аудита остаётся в приватном Audit Flow.</small>
+          </div>
+        </details>
+      </article>`;
+    }).join("");
+  }
+
+  function renderPotokErrors(data) {
+    const groups = new Map();
+    data.incidents.forEach((incident) => {
+      const key = `${incident.reviewer}:${incident.error_class}`;
+      groups.set(key, { ...incident, count: (groups.get(key)?.count || 0) + 1 });
+    });
+    const values = [...groups.values()].sort((a, b) => b.count - a.count);
+    potokErrorList.innerHTML = values.length
+      ? values.map((item) => `<div><strong>${escapeHtml(item.model)}</strong><span>${escapeHtml(potokErrorLabel(item.error_class))}</span><b>${item.count}</b></div>`).join("")
+      : '<p class="potok-empty">За выбранный период технических ошибок нет.</p>';
+  }
+
+  function renderPotokAuditDashboard() {
+    if (!potokAuditMetrics) return;
+    document.querySelectorAll("[data-potok-period]").forEach((button) => {
+      button.classList.toggle("is-active", button.dataset.potokPeriod === activePotokPeriod);
+    });
+    const data = filteredPotokData();
+    renderPotokMetrics(data);
+    renderPotokRanking(filteredPotokData("all"));
+    renderPotokModels(data);
+    renderPotokAudits(data);
+    renderPotokErrors(data);
+    potokAuditFreshness.textContent = potokAuditData.generated_at
+      ? `Снимок по ${potokDate(potokAuditData.generated_at)} · metadata-only`
+      : "Нет доступного снимка";
+    const atlasUpdated = document.getElementById("atlas-updated");
+    if (atlasUpdated && potokAuditData.generated_at) atlasUpdated.textContent = `Обновлено ${potokDate(potokAuditData.generated_at)}`;
+  }
+
   function activateTab(tabName) {
     document.querySelectorAll(".tab").forEach((button) => {
       const isActive = button.dataset.tab === tabName;
@@ -360,6 +674,18 @@
   document.addEventListener("click", (event) => {
     const tab = event.target.closest("[data-tab]");
     if (tab) activateTab(tab.dataset.tab);
+
+    const potokPeriod = event.target.closest("[data-potok-period]");
+    if (potokPeriod) {
+      activePotokPeriod = potokPeriod.dataset.potokPeriod;
+      renderPotokAuditDashboard();
+    }
+
+    const auditLink = event.target.closest("[data-potok-audit-link]");
+    if (auditLink) {
+      const detail = document.querySelector(`[data-potok-audit-detail="${auditLink.dataset.potokAuditLink}"]`);
+      if (detail) detail.open = true;
+    }
 
     const routeButton = event.target.closest("[data-route]");
     if (routeButton) {
@@ -426,7 +752,7 @@
     }
 
     if (event.target.closest("#audit-export")) copyText(auditMarkdown(), event.target.closest("#audit-export"));
-    if (event.target.closest("#audit-reset") && window.confirm("Сбросить все 35 статусов и комментарии выбранного проекта?")) {
+    if (event.target.closest("#audit-reset") && window.confirm(`Сбросить все ${model.audit_items.length} статусов и комментарии выбранного проекта?`)) {
       localStorage.removeItem(auditStorageKey());
       renderAudit();
     }
@@ -436,6 +762,11 @@
     if (event.target === auditProject) {
       activeAuditProject = auditProject.value;
       renderAudit();
+      return;
+    }
+    if (event.target === potokAuditReviewer) {
+      activePotokReviewer = potokAuditReviewer.value;
+      renderPotokAuditDashboard();
       return;
     }
     if (event.target.matches("[data-audit-status]")) {
@@ -468,9 +799,19 @@
   renderQuestions();
   renderToolkit();
   renderPrompts();
+  renderPotokAuditDashboard();
 
   const requestedTab = window.location.hash.slice(1);
-  if (["map", "options", "rollout", "systems", "audit", "questions", "toolkit", "rules"].includes(requestedTab)) {
+  if (["map", "options", "rollout", "systems", "audit", "potok-audits", "questions", "toolkit", "rules"].includes(requestedTab)) {
     activateTab(requestedTab);
+  } else if (/^potok-AUD-\d{3}$/.test(requestedTab)) {
+    activateTab("potok-audits");
+    window.history.replaceState(null, "", `#${requestedTab}`);
+    const auditId = requestedTab.replace("potok-", "");
+    const detail = document.querySelector(`[data-potok-audit-detail="${auditId}"]`);
+    if (detail) {
+      detail.open = true;
+      requestAnimationFrame(() => detail.closest(".potok-audit-row")?.scrollIntoView({ block: "center" }));
+    }
   }
 })();
