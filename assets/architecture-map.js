@@ -450,6 +450,10 @@
 
   const potokReviewerRows = (audit) => (Array.isArray(audit?.reviewers) ? audit.reviewers : []).map(potokNormalizeRow);
 
+  const potokRowVerdictLabel = (row) => row?.error_class
+    ? "Технический сбой"
+    : potokVerdictLabel(row?.verdict || "INCONCLUSIVE");
+
   function potokDayKey(value) {
     const date = new Date(value);
     if (!Number.isFinite(date.getTime())) return "";
@@ -610,7 +614,7 @@
         <div data-label="Контур"><span class="potok-contour">${escapeHtml(potokContourLabel(audit.contour))}</span></div>
         <div class="potok-review-results" data-label="Результаты моделей">${rows.map((row) => `
           <span class="potok-verdict potok-verdict--${escapeHtml(String(row.verdict || "INCONCLUSIVE").toLowerCase())}">
-            <b>${escapeHtml(row.model || potokReviewerLabel(row.reviewer))}</b>${escapeHtml(potokVerdictLabel(row.verdict || "INCONCLUSIVE"))}<small>${potokDuration(row.duration_seconds)} · ${row.value_score}/9</small>
+            <b>${escapeHtml(row.model || potokReviewerLabel(row.reviewer))}</b>${escapeHtml(potokRowVerdictLabel(row))}<small>${potokDuration(row.duration_seconds)} · ${row.value_score}/9</small>
           </span>`).join("")}</div>
         <div data-label="Время"><strong>${potokDuration(displayedSeconds)}</strong><small>${selectedRow ? "выбранная модель" : audit.parallel ? "общее по стене" : "последовательно"}</small></div>
         <div data-label="Ценность"><span class="potok-value potok-value--${escapeHtml(displayedValue)}">${escapeHtml(displayedValue)}/9</span><small>${selectedRow ? escapeHtml(potokReviewerLabel(selectedRow.reviewer)) : "Итог пары"}: ${escapeHtml(displayedReason || "Результат не классифицирован")}</small></div>
@@ -619,7 +623,7 @@
           <summary>Кому поставлена оценка и за что</summary>
           <div class="potok-audit-detail__body">
             <p><strong>Что проверяли:</strong> ${escapeHtml(potokFocusLabel(audit.focus))}. <strong>Итог пары:</strong> ${escapeHtml(potokVerdictLabel(audit.outcome || "INCONCLUSIVE"))}, ${escapeHtml(audit.value_score)}/9 — ${escapeHtml(audit.value_reason || "Результат не классифицирован")}.</p>
-            <div>${rows.map((row) => `<section><strong>${escapeHtml(row.model || potokReviewerLabel(row.reviewer))} · ${row.value_score}/9</strong><span>${escapeHtml(potokVerdictLabel(row.verdict))} · ${potokDuration(row.duration_seconds)}</span><p>${escapeHtml(row.value_reason)}</p></section>`).join("")}</div>
+            <div>${rows.map((row) => `<section><strong>${escapeHtml(row.model || potokReviewerLabel(row.reviewer))} · ${row.value_score}/9</strong><span>${escapeHtml(potokRowVerdictLabel(row))} · ${potokDuration(row.duration_seconds)}</span><p>${escapeHtml(row.value_reason)}</p></section>`).join("")}</div>
             <small>Публичная карточка показывает только метаданные. Полный текст аудита остаётся в приватном Audit Flow.</small>
           </div>
         </details>
