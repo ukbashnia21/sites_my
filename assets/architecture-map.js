@@ -22,23 +22,36 @@
   const toolkitGrid = document.getElementById("toolkit-grid");
   const promptGrid = document.getElementById("prompt-grid");
   const potokAuditDataElement = document.getElementById("potok-audit-data");
+  const emptyPotokAuditData = {
+    snapshot_built_at: null,
+    latest_source_event_at: null,
+    published_at: null,
+    window_days: 7,
+    pipeline: null,
+    audits: [],
+    incidents: []
+  };
   const potokAuditData = (() => {
-    if (!potokAuditDataElement) return { generated_at: null, window_days: 7, audits: [], incidents: [] };
+    if (!potokAuditDataElement) return emptyPotokAuditData;
     try {
       const parsed = JSON.parse(potokAuditDataElement.textContent);
       return parsed && Array.isArray(parsed.audits) && Array.isArray(parsed.incidents)
         ? parsed
-        : { generated_at: null, window_days: 7, audits: [], incidents: [] };
+        : emptyPotokAuditData;
     } catch (_) {
-      return { generated_at: null, window_days: 7, audits: [], incidents: [] };
+      return emptyPotokAuditData;
     }
   })();
+  let potokPipelineHealth = potokAuditData.pipeline;
   const potokAuditMetrics = document.getElementById("potok-audit-metrics");
   const potokModelRanking = document.getElementById("potok-model-ranking");
   const potokAuditModels = document.getElementById("potok-audit-models");
   const potokAuditList = document.getElementById("potok-audit-list");
   const potokErrorList = document.getElementById("potok-error-list");
   const potokAuditFreshness = document.getElementById("potok-audit-freshness");
+  const potokLatestSource = document.getElementById("potok-latest-source");
+  const potokLastCheck = document.getElementById("potok-last-check");
+  const potokPublishedAt = document.getElementById("potok-published-at");
   const potokAuditReviewer = document.getElementById("potok-audit-reviewer");
   let activeRoute = model.routes[0].id;
   let selectedNode = null;
@@ -402,8 +415,34 @@
     "acp-response": "сбой ответа Kimi ACP",
     "acp-eof": "обрыв Kimi ACP",
     auditerror: "ошибка адаптера",
-    codexreturncode: "сбой Codex reviewer"
-  }[error] || error || "нет");
+    codexreturncode: "сбой Codex reviewer",
+    other: "другая техническая ошибка"
+  }[error] || (error ? "другая техническая ошибка" : "нет"));
+
+  const potokPipelineStatusLabel = (status) => ({
+    FRESH: "FRESH",
+    NO_NEW_AUDITS: "NO NEW AUDITS",
+    LAGGING: "LAGGING",
+    STALE: "STALE",
+    FAILED: "FAILED",
+    UNKNOWN: "UNKNOWN"
+  }[status] || "UNKNOWN");
+
+  const potokPipelineReason = (status, error) => {
+    if (status === "FRESH") return "Новые допустимые evidence опубликованы";
+    if (status === "NO_NEW_AUDITS") return "Pipeline исправен, новых аудитов нет";
+    if (status === "LAGGING") return "Источник новее опубликованного снимка";
+    if (status === "STALE") return "Успешная проверка просрочена";
+    if (status === "FAILED") return ({
+      "malformed-evidence": "Некорректный или частичный evidence",
+      "source-unavailable": "Источник evidence недоступен",
+      "public-git-failed": "Не удалось обновить публичную публикацию",
+      "public-diverged": "Публичная ветка изменилась параллельно",
+      "build-failed": "Сборка или проверка завершилась ошибкой",
+      "state-invalid": "Локальное состояние pipeline невалидно"
+    }[error] || "Последняя попытка завершилась технической ошибкой");
+    return "Состояние pipeline нельзя доказать";
+  };
 
   const potokReviewerLabel = (reviewer) => ({
     claude: "Claude",
@@ -464,7 +503,7 @@
 
   function potokInPeriod(value, period) {
     const date = new Date(value);
-    const anchor = new Date(potokAuditData.generated_at);
+    const anchor = new Date(potokAuditData.latest_source_event_at || potokAuditData.snapshot_built_at);
     if (!Number.isFinite(date.getTime()) || !Number.isFinite(anchor.getTime())) return false;
     if (period === "today") return potokDayKey(date) === potokDayKey(anchor);
     if (period === "yesterday") return potokDayKey(date) === potokDayKey(new Date(anchor.getTime() - 86400000));
@@ -482,6 +521,7 @@
   }
 
   function potokDate(value) {
+    if (typeof value !== "string" || !value.trim()) return "—";
     const date = new Date(value);
     if (!Number.isFinite(date.getTime())) return "—";
     return new Intl.DateTimeFormat("ru-RU", {
@@ -569,6 +609,10 @@
 
   function renderPotokRanking(data) {
     if (!potokModelRanking) return;
+    if (!data.audits.length) {
+      potokModelRanking.innerHTML = '<p class="potok-empty">Для рейтинга reviewer-моделей за выбранный период недостаточно данных.</p>';
+      return;
+    }
     const stats = [potokModelStats(data, "claude"), potokModelStats(data, "kimi")];
     const medians = stats.map((item) => item.median).filter((value) => Number.isFinite(value) && value > 0);
     const fastest = medians.length ? Math.min(...medians) : null;
@@ -654,11 +698,57 @@
     renderPotokModels(data);
     renderPotokAudits(data);
     renderPotokErrors(data);
-    potokAuditFreshness.textContent = potokAuditData.generated_at
-      ? `Снимок по ${potokDate(potokAuditData.generated_at)} · metadata-only`
-      : "Нет доступного снимка";
+    renderPotokFreshness();
+  }
+
+  function renderPotokFreshness() {
+    const checkedAt = new Date(potokPipelineHealth?.checked_at);
+    const staleAfter = Number(potokPipelineHealth?.stale_after_seconds);
+    let pipelineStatus = ["FRESH", "NO_NEW_AUDITS", "LAGGING", "STALE", "FAILED", "UNKNOWN"]
+      .includes(potokPipelineHealth?.status) ? potokPipelineHealth.status : "UNKNOWN";
+    if (
+      ["FRESH", "NO_NEW_AUDITS"].includes(pipelineStatus)
+      && Number.isFinite(checkedAt.getTime())
+      && Number.isFinite(staleAfter)
+      && Date.now() - checkedAt.getTime() > staleAfter * 1000
+    ) pipelineStatus = "STALE";
+    const statusClass = pipelineStatus.toLowerCase().replaceAll("_", "-");
+    potokAuditFreshness.innerHTML = `<span class="potok-pipeline-status potok-pipeline-status--${escapeHtml(statusClass)}">${escapeHtml(potokPipelineStatusLabel(pipelineStatus))}</span><span>${escapeHtml(potokPipelineReason(pipelineStatus, potokPipelineHealth?.error_class))} · metadata-only</span>`;
+    if (potokLatestSource) potokLatestSource.textContent = potokDate(potokAuditData.latest_source_event_at);
+    if (potokLastCheck) potokLastCheck.textContent = potokDate(potokPipelineHealth?.checked_at);
+    if (potokPublishedAt) potokPublishedAt.textContent = potokDate(potokAuditData.published_at);
     const atlasUpdated = document.getElementById("atlas-updated");
-    if (atlasUpdated && potokAuditData.generated_at) atlasUpdated.textContent = `Обновлено ${potokDate(potokAuditData.generated_at)}`;
+    if (atlasUpdated && potokAuditData.published_at) atlasUpdated.textContent = `Обновлено ${potokDate(potokAuditData.published_at)}`;
+  }
+
+  async function refreshPotokPipelineHealth() {
+    try {
+      const response = await fetch("potok-pipeline-health.json", { cache: "no-store", redirect: "error" });
+      if (!response.ok) return;
+      const value = await response.json();
+      if (
+        value && typeof value === "object"
+        && ["FRESH", "NO_NEW_AUDITS", "LAGGING", "STALE", "FAILED", "UNKNOWN"].includes(value.status)
+        && typeof value.checked_at === "string"
+        && typeof value.last_success_at === "string"
+        && Number.isFinite(new Date(value.checked_at).getTime())
+        && Number.isFinite(new Date(value.last_success_at).getTime())
+        && Number.isInteger(value.stale_after_seconds)
+        && value.stale_after_seconds >= 60
+        && value.stale_after_seconds <= 86400
+        && (value.error_class === null || /^[a-z0-9-]{1,48}$/.test(value.error_class))
+      ) {
+        potokPipelineHealth = value;
+        renderPotokFreshness();
+      }
+    } catch (_) {
+      // Embedded reviewed health remains the fail-closed fallback.
+    }
+  }
+
+  function findPotokAuditDetail(id) {
+    return [...document.querySelectorAll("[data-potok-audit-detail]")]
+      .find((detail) => detail.dataset.potokAuditDetail === id) || null;
   }
 
   function activateTab(tabName) {
@@ -687,7 +777,7 @@
 
     const auditLink = event.target.closest("[data-potok-audit-link]");
     if (auditLink) {
-      const detail = document.querySelector(`[data-potok-audit-detail="${auditLink.dataset.potokAuditLink}"]`);
+      const detail = findPotokAuditDetail(auditLink.dataset.potokAuditLink);
       if (detail) detail.open = true;
     }
 
@@ -804,6 +894,7 @@
   renderToolkit();
   renderPrompts();
   renderPotokAuditDashboard();
+  refreshPotokPipelineHealth();
 
   const requestedTab = window.location.hash.slice(1);
   if (["map", "options", "rollout", "systems", "audit", "potok-audits", "questions", "toolkit", "rules"].includes(requestedTab)) {
@@ -812,7 +903,7 @@
     activateTab("potok-audits");
     window.history.replaceState(null, "", `#${requestedTab}`);
     const auditId = requestedTab.replace("potok-", "");
-    const detail = document.querySelector(`[data-potok-audit-detail="${auditId}"]`);
+    const detail = findPotokAuditDetail(auditId);
     if (detail) {
       detail.open = true;
       requestAnimationFrame(() => detail.closest(".potok-audit-row")?.scrollIntoView({ block: "center" }));
