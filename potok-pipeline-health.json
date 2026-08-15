@@ -1,7 +1,7 @@
 {
-  "checked_at": "2026-08-15T06:57:35Z",
+  "checked_at": "2026-08-15T07:17:52Z",
   "error_class": null,
-  "last_success_at": "2026-08-15T06:57:35Z",
+  "last_success_at": "2026-08-15T07:17:52Z",
   "stale_after_seconds": 7200,
-  "status": "NO_NEW_AUDITS"
+  "status": "FRESH"
 }
